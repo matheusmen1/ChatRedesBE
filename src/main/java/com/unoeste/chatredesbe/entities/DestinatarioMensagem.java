@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "DestinatarioMensagem")
+@Table(name = "destinatario_mensagem")
 public class DestinatarioMensagem
 {
     @Id
@@ -24,7 +24,7 @@ public class DestinatarioMensagem
     @Column(name = "status")
     private String status;
 
-    @Column(name = "dataHoraEntrega")
+    @Column(name = "data_hora_entrega")
     private LocalDateTime dataHoraEntrega;
 
     public DestinatarioMensagem(Long id, Usuario destinatario, Mensagem mensagem, String status, LocalDateTime dataHoraEntrega) {

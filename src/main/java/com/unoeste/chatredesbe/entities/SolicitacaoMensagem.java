@@ -3,7 +3,7 @@ package com.unoeste.chatredesbe.entities;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "SolicitacaoMensagem")
+@Table(name = "solicitacao_mensagem")
 public class SolicitacaoMensagem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

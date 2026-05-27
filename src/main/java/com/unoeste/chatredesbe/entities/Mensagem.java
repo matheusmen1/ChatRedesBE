@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Mensagem")
+@Table(name = "mensagem")
 public class Mensagem {
 
     @Id
@@ -23,7 +23,7 @@ public class Mensagem {
     @JoinColumn(name = "grupo_id")
     private Grupo grupo;
 
-    @Column(name = "dataHoraEnvio")
+    @Column(name = "data_hora_envio")
     private LocalDateTime dataHoraEnvio;
 
     public Mensagem(Long id, Usuario remetente, String conteudo, Grupo grupo, LocalDateTime dataHoraEnvio) {

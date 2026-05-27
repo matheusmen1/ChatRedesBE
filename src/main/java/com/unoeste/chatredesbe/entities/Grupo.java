@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "Grupo")
+@Table(name = "grupo")
 public class Grupo
 {
     @Id
@@ -21,7 +21,7 @@ public class Grupo
     @JoinColumn(name = "criador_id", nullable = false)
     private Usuario criador;
 
-    @Column(name = "dataCriacao")
+    @Column(name = "data_criacao")
     private LocalDateTime dataCriacao;
 
     @OneToMany(mappedBy = "grupo")

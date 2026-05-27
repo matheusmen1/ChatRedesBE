@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "UsuarioGrupo")
+@Table(name = "usuario_grupo")
 public class UsuarioGrupo
 {
     @Id
@@ -21,7 +21,7 @@ public class UsuarioGrupo
     @JoinColumn(name = "grupo_id")
     private Grupo grupo;
 
-    @Column(name = "dataEntrada")
+    @Column(name = "data_entrada")
     private LocalDateTime dataEntrada;
 
     public UsuarioGrupo(Long id, Usuario usuario, Grupo grupo, LocalDateTime dataEntrada) {

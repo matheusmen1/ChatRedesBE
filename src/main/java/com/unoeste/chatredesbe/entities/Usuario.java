@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.util.List;
 
 @Entity
-@Table(name = "Usuario")
+@Table(name = "usuario")
 public class Usuario
 {
     @Id
@@ -22,23 +22,35 @@ public class Usuario
     @Column(name = "email")
     private String email;
 
+    @Column(name = "senha")
+    private String senha;
+
     @Column(name = "status")
     private String status; // online, ocupado e offline
 
     @OneToMany(mappedBy = "usuario")
     private List<UsuarioGrupo> gruposUsuario;
 
-    public Usuario(Long id, String nome, String apelido, String email, String status) {
+    public Usuario(Long id, String nome, String apelido, String email, String senha, String status) {
         this.id = id;
         this.nome = nome;
         this.apelido = apelido;
         this.email = email;
+        this.senha = senha;
         this.status = status;
     }
 
     public Usuario()
     {
-        this(0L, "", "", "", "");
+        this(0L, "", "", "", "", "");
+    }
+
+    public String getSenha() {
+        return senha;
+    }
+
+    public void setSenha(String senha) {
+        this.senha = senha;
     }
 
     public List<UsuarioGrupo> getGruposUsuario() {
