@@ -34,6 +34,14 @@ public class ConviteGrupo {
         this.status = status;
     }
 
+    public ConviteGrupo(Usuario solicitante, Usuario convidado, Grupo grupo, String status)
+    {
+        this.solicitante = solicitante;
+        this.convidado = convidado;
+        this.grupo = grupo;
+        this.status = status;
+    }
+
     public ConviteGrupo()
     {
         this(0L, null, null, null, "");

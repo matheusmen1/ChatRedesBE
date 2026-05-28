@@ -23,6 +23,12 @@ public class ConviteGrupoService
         return conviteGrupoRepository.findById(id).orElse(null);
     }
 
+    public ConviteGrupo getByGrupoConvidado(Long idgrupo, Long idConvidado)
+    {
+        return conviteGrupoRepository.findByIdGrupoConvidado(idgrupo, idConvidado);
+    }
+
+
     public ConviteGrupo salvar(ConviteGrupo conviteGrupo)
     {
         try {

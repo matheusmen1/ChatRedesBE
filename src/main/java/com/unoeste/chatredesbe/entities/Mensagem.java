@@ -1,7 +1,6 @@
 package com.unoeste.chatredesbe.entities;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity

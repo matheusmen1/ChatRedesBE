@@ -22,6 +22,11 @@ public class GrupoService {
         return grupoRepository.findById(id).orElse(null);
     }
 
+    public Grupo getByName(String nome)
+    {
+        return grupoRepository.findByName(nome);
+    }
+
     public Grupo salvar(Grupo grupo)
     {
         try {

@@ -34,9 +34,20 @@ public class Grupo
         this.dataCriacao = dataCriacao;
     }
 
+    public Grupo(String nome, Usuario usuario, LocalDateTime dataCriacao) {
+        this.nome = nome;
+        this.criador = usuario;
+        this.dataCriacao = dataCriacao;
+    }
+
     public Grupo()
     {
         this(0L, "", null, null);
+    }
+
+    public Grupo(Long id)
+    {
+        this(id, "", null, null);
     }
 
     public List<UsuarioGrupo> getUsuariosGrupo() {

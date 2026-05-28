@@ -31,6 +31,12 @@ public class UsuarioGrupo
         this.dataEntrada = dataEntrada;
     }
 
+    public UsuarioGrupo(Usuario usuario, Grupo grupo, LocalDateTime dataEntrada) {
+        this.usuario = usuario;
+        this.grupo = grupo;
+        this.dataEntrada = dataEntrada;
+    }
+
     public UsuarioGrupo()
     {
         this(0L, null, null, null);

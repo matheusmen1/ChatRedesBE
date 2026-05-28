@@ -28,6 +28,12 @@ public class VotoSolicitacao {
         this.status = status;
     }
 
+    public VotoSolicitacao( Usuario votante, SolicitacaoEntradaGrupo solicitacao, String status) {
+        this.votante = votante;
+        this.solicitacao = solicitacao;
+        this.status = status;
+    }
+
     public VotoSolicitacao()
     {
         this(0L, null, null, "");

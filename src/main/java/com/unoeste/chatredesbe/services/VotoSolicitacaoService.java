@@ -23,6 +23,17 @@ public class VotoSolicitacaoService
         return votoSolicitacaoRepository.findById(id).orElse(null);
     }
 
+    public VotoSolicitacao getByIdVotanteSolicitacao (Long idVotante, Long idSolicitacao)
+    {
+        return votoSolicitacaoRepository.getByIdVotanteSolicitacao(idVotante,idSolicitacao);
+    }
+
+    public List<VotoSolicitacao> getAllSolicitacao(Long idSolicitacao)
+    {
+        return votoSolicitacaoRepository.getAllSolicitacao(idSolicitacao);
+    }
+
+
     public VotoSolicitacao salvar(VotoSolicitacao votoSolicitacao)
     {
         try {

@@ -1,5 +1,5 @@
 -- 1. Tabela Usuario
-CREATE TABLE usuario (
+CREATE TABLE if not exists usuario (
     id BIGSERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     apelido VARCHAR(100) NOT NULL UNIQUE,
@@ -9,7 +9,7 @@ CREATE TABLE usuario (
 );
 
 -- 2. Tabela Grupo
-CREATE TABLE grupo (
+CREATE TABLE if not exists grupo (
     id BIGSERIAL PRIMARY KEY,
     nome VARCHAR(150) NOT NULL UNIQUE,
     criador_id BIGINT NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE grupo (
 );
 
 -- 3. Tabela UsuarioGrupo
-CREATE TABLE usuario_grupo (
+CREATE TABLE if not exists usuario_grupo (
     id BIGSERIAL PRIMARY KEY,
     usuario_id BIGINT NOT NULL,
     grupo_id BIGINT NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE usuario_grupo (
 );
 
 -- 4. Tabela SolicitacaoMensagem (Para chat privado)
-CREATE TABLE solicitacao_mensagem (
+CREATE TABLE if not exists solicitacao_mensagem (
     id BIGSERIAL PRIMARY KEY,
     usuario1_id BIGINT NOT NULL,
     usuario2_id BIGINT NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE solicitacao_mensagem (
 );
 
 -- 5. Tabela ConviteGrupo
-CREATE TABLE convite_grupo (
+CREATE TABLE if not exists convite_grupo (
     id BIGSERIAL PRIMARY KEY,
     solicitante_id BIGINT NOT NULL,
     convidado_id BIGINT NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE convite_grupo (
 );
 
 -- 6. Tabela SolicitacaoEntradaGrupo
-CREATE TABLE solicitacao_entrada_grupo (
+CREATE TABLE if not exists solicitacao_entrada_grupo (
     id BIGSERIAL PRIMARY KEY,
     grupo_id BIGINT NOT NULL,
     solicitante_id BIGINT NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE solicitacao_entrada_grupo (
 );
 
 -- 7. Tabela VotoSolicitacao
-CREATE TABLE voto_solicitacao (
+CREATE TABLE if not exists voto_solicitacao (
     id BIGSERIAL PRIMARY KEY,
     votante_id BIGINT NOT NULL,
     solicitacao_id BIGINT NOT NULL,
@@ -70,7 +70,7 @@ CREATE TABLE voto_solicitacao (
 );
 
 -- 8. Tabela Mensagem
-CREATE TABLE mensagem (
+CREATE TABLE if not exists mensagem (
     id BIGSERIAL PRIMARY KEY,
     remetente_id BIGINT NOT NULL,
     conteudo TEXT NOT NULL,
@@ -80,8 +80,8 @@ CREATE TABLE mensagem (
     CONSTRAINT FK_mensagem_grupo FOREIGN KEY (grupo_id) REFERENCES grupo(id)
 );
 
--- 9. Tabela DestinarioMensagem
-CREATE TABLE destinario_mensagem (
+-- 9. Tabela DestinatarioMensagem
+CREATE TABLE if not exists destinatario_mensagem (
     id BIGSERIAL PRIMARY KEY,
     destinatario_id BIGINT NOT NULL,
     mensagem_id BIGINT NOT NULL,

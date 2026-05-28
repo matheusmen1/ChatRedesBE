@@ -28,6 +28,12 @@ public class SolicitacaoEntradaGrupo {
         this.status = status;
     }
 
+    public SolicitacaoEntradaGrupo(Grupo grupo, Usuario solicitante, String status) {
+        this.grupo = grupo;
+        this.solicitante = solicitante;
+        this.status = status;
+    }
+
     public SolicitacaoEntradaGrupo()
     {
         this(0L, null, null, "");

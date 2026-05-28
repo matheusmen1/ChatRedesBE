@@ -23,6 +23,12 @@ public class UsuarioGrupoService
         return usuarioGrupoRepository.findById(id).orElse(null);
     }
 
+    public UsuarioGrupo getByUsuarioGrupo(Long idGrupo, Long idUsuario)
+    {
+        return usuarioGrupoRepository.getByUsuarioGrupo(idGrupo, idUsuario);
+    }
+
+
     public UsuarioGrupo salvar(UsuarioGrupo usuarioGrupo)
     {
         try {

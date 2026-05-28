@@ -23,6 +23,11 @@ public class MensagemService
         return mensagemRepository.getByRemetenteAll(id_usuario);
     }
 
+    public List<Mensagem> getAllConversa(Long idOrigem, Long idDestino)
+    {
+        return mensagemRepository.getAllConversa(idOrigem, idDestino);
+    }
+
     public Mensagem getById(Long id)
     {
         return mensagemRepository.findById(id).orElse(null);

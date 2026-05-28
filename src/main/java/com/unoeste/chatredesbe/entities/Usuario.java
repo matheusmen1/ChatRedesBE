@@ -45,6 +45,10 @@ public class Usuario
         this(0L, "", "", "", "", "");
     }
 
+    public Usuario(Long id) {
+        this(id, "", "", "", "", "");
+    }
+
     public String getSenha() {
         return senha;
     }

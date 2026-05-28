@@ -30,11 +30,11 @@ public class DestinatarioMensagemService {
     public DestinatarioMensagem salvar(DestinatarioMensagem destinatarioMensagem)
     {
         try {
-            DestinatarioMensagem novoDestinatarioMensagem = destinatarioMensagemRepository.save(destinatarioMensagem);
-            return destinatarioMensagemRepository.save(novoDestinatarioMensagem);
+            return destinatarioMensagemRepository.save(destinatarioMensagem);
         }
         catch (Exception e)
         {
+            System.out.println(e.getMessage());
             return null;
         }
     }
