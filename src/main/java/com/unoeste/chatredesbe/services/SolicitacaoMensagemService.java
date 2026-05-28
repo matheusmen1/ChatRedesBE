@@ -1,7 +1,7 @@
 package com.unoeste.chatredesbe.services;
 
 import com.unoeste.chatredesbe.entities.SolicitacaoMensagem;
-import com.unoeste.chatredesbe.entities.UsuarioGrupo;
+import com.unoeste.chatredesbe.entities.Usuario;
 import com.unoeste.chatredesbe.repositories.SolicitacaoMensagemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,6 +22,11 @@ public class SolicitacaoMensagemService
     public SolicitacaoMensagem getById(Long id)
     {
         return solicitacaoMensagemRepository.findById(id).orElse(null);
+    }
+
+    public SolicitacaoMensagem getByUsers(Usuario origem, Usuario destino)
+    {
+        return solicitacaoMensagemRepository.getByUsers(origem.getId(), destino.getId());
     }
 
     public SolicitacaoMensagem salvar(SolicitacaoMensagem solicitacaoMensagem)

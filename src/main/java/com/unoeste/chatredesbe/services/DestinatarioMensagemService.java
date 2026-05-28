@@ -22,6 +22,11 @@ public class DestinatarioMensagemService {
         return destinatarioMensagemRepository.findById(id).orElse(null);
     }
 
+    public List<DestinatarioMensagem> getByIdDestinatario(Long Id) {
+        return destinatarioMensagemRepository.getByDestinatario(Id);
+    }
+
+
     public DestinatarioMensagem salvar(DestinatarioMensagem destinatarioMensagem)
     {
         try {

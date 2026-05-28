@@ -30,6 +30,12 @@ public class SolicitacaoMensagem {
         this.status = status;
     }
 
+    public SolicitacaoMensagem(Usuario usuario1, Usuario usuario2, String status) {
+        this.usuario1 = usuario1;
+        this.usuario2 = usuario2;
+        this.status = status;
+    }
+
     public SolicitacaoMensagem()
     {
         this(0L, null, null, "");

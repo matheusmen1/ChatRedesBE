@@ -8,7 +8,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class MensagemService {
+public class MensagemService
+{
     @Autowired
     private MensagemRepository mensagemRepository;
 
@@ -48,4 +49,6 @@ public class MensagemService {
             return false;
         }
     }
+
+
 }
