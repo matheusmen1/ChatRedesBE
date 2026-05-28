@@ -35,6 +35,14 @@ public class DestinatarioMensagem
         this.dataHoraEntrega = dataHoraEntrega;
     }
 
+    public DestinatarioMensagem(Usuario destinatario, Mensagem mensagem, String status, LocalDateTime dataHoraEntrega) {
+        this.id = id;
+        this.destinatario = destinatario;
+        this.mensagem = mensagem;
+        this.status = status;
+        this.dataHoraEntrega = dataHoraEntrega;
+    }
+
     public DestinatarioMensagem()
     {
         this(0L, null, null, "",null);

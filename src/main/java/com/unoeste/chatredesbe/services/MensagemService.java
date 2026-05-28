@@ -1,8 +1,7 @@
 package com.unoeste.chatredesbe.services;
 
-import com.unoeste.chatredesbe.entities.Usuario;
+import com.unoeste.chatredesbe.entities.Mensagem;
 import com.unoeste.chatredesbe.repositories.MensagemRepository;
-import com.unoeste.chatredesbe.repositories.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,39 +10,27 @@ import java.util.List;
 @Service
 public class MensagemService {
     @Autowired
-    private MensagemRepository usuarioRepository;
+    private MensagemRepository mensagemRepository;
 
-    public List<Usuario> getAll()
+    public List<Mensagem> getAll()
     {
-        return usuarioRepository.findAll();
+        return mensagemRepository.findAll();
     }
 
-    public Usuario getById(Long id)
+    public List<Mensagem> getByRemetenteAll(Long id_usuario)
     {
-        return usuarioRepository.findById(id).orElse(null);
+        return mensagemRepository.getByRemetenteAll(id_usuario);
     }
 
-    public Usuario getByEmail(String email)
+    public Mensagem getById(Long id)
     {
-        return usuarioRepository.getUsuarioByEmail(email);
+        return mensagemRepository.findById(id).orElse(null);
     }
 
-    public Usuario getByApelido(String login)
-    {
-        return usuarioRepository.getUsuarioByApelido(login);
-    }
-
-    public Usuario salvar(Usuario usuario)
+    public Mensagem salvar(Mensagem mensagem)
     {
         try {
-            Usuario aux = usuarioRepository.getUsuarioByApelido(usuario.getApelido());
-            if (aux == null)
-            {
-                Usuario novoUsuario = usuarioRepository.save(usuario);
-                return usuarioRepository.save(novoUsuario);
-            }
-            else
-                return null;
+            return mensagemRepository.save(mensagem);
         }
         catch (Exception e)
         {
@@ -51,16 +38,14 @@ public class MensagemService {
         }
     }
 
-    public Usuario logar(String login, String senha)
+    public boolean excluir(Long id)
     {
-        Usuario usuario = usuarioRepository.getUsuarioByApelido(login);
-        if (usuario != null)
-        {
-            if (usuario.getSenha().equals(senha))
-                return usuario;
-            else
-                return null;
+        try {
+            mensagemRepository.deleteById(id);
+            return true;
         }
-        return usuario;
+        catch (Exception e){
+            return false;
+        }
     }
 }

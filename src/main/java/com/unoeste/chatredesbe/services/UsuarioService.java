@@ -57,4 +57,17 @@ public class UsuarioService {
         }
         return usuario;
     }
+
+    public boolean deletar(Usuario usuario)
+    {
+        try{
+            usuarioRepository.delete(usuario);
+            return true;
+        }
+        catch (Exception e)
+        {
+            return false;
+        }
+    }
+
 }

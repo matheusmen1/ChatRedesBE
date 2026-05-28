@@ -6,11 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface MensagemRepository extends JpaRepository<Mensagem, Long>
 {
     @Query(value = "SELECT * FROM mensagem WHERE remetente_id = :remetente_id", nativeQuery = true)
-    public Usuario getMensagemByRemetente(@Param("remetente_id") Long remetente_id);
-
-    @Query(value = "SELECT * FROM mensagem WHERE email = :email", nativeQuery = true)
-    public Usuario getUsuarioByEmail(@Param("email") String email);
+    public List<Mensagem> getByRemetenteAll(@Param("remetente_id") Long remetente_id);
 }

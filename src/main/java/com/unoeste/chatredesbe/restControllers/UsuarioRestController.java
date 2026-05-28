@@ -26,6 +26,7 @@ public class UsuarioRestController
         else
             return ResponseEntity.badRequest().body(new Erro("Nenhum Usurio Encontrado"));
     }
+
     @GetMapping(value = "/getById/{id}")
     public ResponseEntity<Object> getById(@PathVariable("id") Long id)
     {
@@ -35,6 +36,7 @@ public class UsuarioRestController
         else
             return ResponseEntity.badRequest().body(new Erro("Usuario Nao Encontrado"));
     }
+
     @GetMapping("/getByEmail/{email}")
     public ResponseEntity<Object> getByEmail(@PathVariable("email") String email)
     {
@@ -44,6 +46,7 @@ public class UsuarioRestController
         else
             return ResponseEntity.badRequest().body(new Erro("Usuario Nao Encontrado"));
     }
+
     @GetMapping("/getByApelido/{apelido}") // apelido
     public ResponseEntity<Object> getByApelido(@PathVariable("apelido") String apelido)
     {
@@ -53,16 +56,13 @@ public class UsuarioRestController
         else
             return ResponseEntity.badRequest().body(new Erro("Usuario Nao Encontrado"));
     }
-    @PostMapping("/logar")
-    public ResponseEntity<Object> logar(@RequestParam String login, @RequestParam String senha)
-    {
-        Usuario usuario = usuarioService.logar(login, senha);
-        if (usuario != null)
-            return ResponseEntity.ok(usuario);
-        else
-            return ResponseEntity.badRequest().body(new Erro("Usuario Nao Encontrado"));
-    }
 
+    // ================================================================================================
+    // PARTE DE PERFIL DO SISTEMA
+    // ================================================================================================
+    /**
+     * Cadastro de Usuários
+     * */
     @PostMapping
     public ResponseEntity<Object> salvar(@RequestBody Usuario usuario)
     {
@@ -77,6 +77,50 @@ public class UsuarioRestController
             return ResponseEntity.badRequest().body(new Erro(e.getMessage()));
         }
     }
+
+    /**
+     * Realização do Login
+     * */
+    @PostMapping("/login")
+    public ResponseEntity<Object> login(@RequestParam String login, @RequestParam String senha)
+    {
+        // recupera aquela Usuário com o respectivo apelido/login e senha
+        Usuario usuario = usuarioService.logar(login, senha);
+        if (usuario != null)
+        {
+            // tratar a questão do socket --> REALIZAÇÃO DO LOGIN
+            return ResponseEntity.ok(usuario);
+        }
+        else
+        {
+            // tratar a questão do socket
+            return ResponseEntity.badRequest().body(new Erro("Usuario Nao Encontrado"));
+        }
+    }
+
+    /**
+     * Realização do Logout
+     * */
+    @PostMapping("/logout")
+    public ResponseEntity<Object> logout(@RequestParam String login, @RequestParam String senha)
+    {
+        // recupera aquela Usuário com o respectivo apelido/login e senha
+        Usuario usuario = usuarioService.logar(login, senha);
+        if (usuario != null)
+        {
+            // tratar a questão do socket --> REALIZAÇÃO DO LOGOUT
+            return ResponseEntity.ok(usuario);
+        }
+        else
+        {
+            // tratar a questão do socket
+            return ResponseEntity.badRequest().body(new Erro("Usuario Nao Encontrado"));
+        }
+    }
+
+    /**
+     * Mudar algo no Usuário, será usado para alterar também o seu Status
+     * */
     @PutMapping
     public ResponseEntity<Object> alterarStatus(@RequestBody Usuario usuario)
     {
@@ -87,5 +131,7 @@ public class UsuarioRestController
         else
             return ResponseEntity.badRequest().body(new Erro("Erro ao Alterar Status"));
     }
-
+    // ================================================================================================
+    // FIM PARTE DE PERFIL DO SISTEMA
+    // ================================================================================================
 }
