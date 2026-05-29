@@ -235,9 +235,9 @@ public class MensageiroRestController {
      *      Rejeitar (0)
      * */
     @PutMapping("/alterarConviteGrupo/{idGrupo}/{idConvidado}/{voto}")
-    public ResponseEntity<Object> alterarConviteGrupo(@PathVariable Long idGrupo, @PathVariable Long idConvidado, @PathVariable Integer voto)
+    public ResponseEntity<Object> alterarSolicitacaoGrupo(@PathVariable Long idGrupo, @PathVariable Long idConvidado, @PathVariable Integer voto)
     {
-        ResultadoOperacao<Object> resultado = mensageiroFacade.alterarConviteGrupo(idGrupo, idConvidado, voto);
+        ResultadoOperacao<ConviteGrupo> resultado = mensageiroFacade.alterarConviteGrupo(idGrupo, idConvidado, voto);
 
         if (resultado.isSucesso()) {
             return ResponseEntity.ok(resultado.getDados());

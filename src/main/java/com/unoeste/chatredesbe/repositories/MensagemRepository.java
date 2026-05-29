@@ -27,6 +27,6 @@ public interface MensagemRepository extends JpaRepository<Mensagem, Long>
             ORDER BY data_hora_envio ASC""", nativeQuery = true)
     public List<Mensagem> getAllConversa(@Param("idOrigem") Long idOrigem, @Param("idDestino") Long idDestino);
 
-    @Query(value = "SELECT * FROM mensagem WHERE grupo_id = :grupo_id", nativeQuery = true)
+    @Query(value = "SELECT * FROM mensagem WHERE grupo_id = :grupo_id ORDER BY data_hora_envio ASC", nativeQuery = true)
     public List<Mensagem> getAllByGrupo(@Param("grupo_id") Long grupo_id);
 }

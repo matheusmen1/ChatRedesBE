@@ -14,4 +14,6 @@ public interface ConviteGrupoRepository extends JpaRepository<ConviteGrupo, Long
 
     @Query(value = "SELECT * FROM convite_grupo WHERE convidado_id = :idConvidado", nativeQuery = true)
     public List<ConviteGrupo> getAllConvitesByConvidado(@Param("idConvidado") Long idConvidado);
+
+    List<ConviteGrupo> findAllByConvidadoIdAndStatus(Long idUsuario, String status);
 }

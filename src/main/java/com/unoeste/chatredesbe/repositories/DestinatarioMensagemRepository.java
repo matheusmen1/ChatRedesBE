@@ -22,5 +22,14 @@ public interface DestinatarioMensagemRepository extends JpaRepository<Destinatar
 
     DestinatarioMensagem findByMensagemAndDestinatario(Mensagem mensagem, Usuario destino);
 
-    List<DestinatarioMensagem> findAllByDestinatarioIdAndStatus(Long idDestinatario, String status);
+    @Query(value = """
+    SELECT dm.* FROM destinatario_mensagem dm 
+    INNER JOIN mensagem m ON dm.mensagem_id = m.id 
+    INNER JOIN solicitacao_mensagem sm ON 
+        (sm.usuario1_id = m.remetente_id AND sm.usuario2_id = dm.destinatario_id) 
+    WHERE dm.destinatario_id = :idDestinatario 
+    AND dm.status = :status 
+    AND sm.status = 'Confirmada'
+    """, nativeQuery = true)
+    List<DestinatarioMensagem> getMensagensDestinariosPendenteAndConfirmadasByUser(@Param("idDestinatario") Long idDestinatario, @Param("status") String status);
 }

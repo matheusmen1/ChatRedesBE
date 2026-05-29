@@ -1,5 +1,6 @@
 package com.unoeste.chatredesbe.services;
 
+import com.unoeste.chatredesbe.entities.Usuario;
 import com.unoeste.chatredesbe.entities.UsuarioGrupo;
 import com.unoeste.chatredesbe.repositories.UsuarioGrupoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,16 @@ public class UsuarioGrupoService
         return usuarioGrupoRepository.findAll();
     }
 
+    public List<UsuarioGrupo> getAllGrupoByUser(Long idUsuario)
+    {
+        return usuarioGrupoRepository.getAllGrupoByUser(idUsuario);
+    }
+
+    public List<UsuarioGrupo> getAllUserByGrupo(Long idGrupo)
+    {
+        return usuarioGrupoRepository.getAllUserByGrupo(idGrupo);
+    }
+
     public UsuarioGrupo getById(Long id)
     {
         return usuarioGrupoRepository.findById(id).orElse(null);
@@ -26,11 +37,6 @@ public class UsuarioGrupoService
     public UsuarioGrupo getByUsuarioGrupo(Long idGrupo, Long idUsuario)
     {
         return usuarioGrupoRepository.getByUsuarioGrupo(idGrupo, idUsuario);
-    }
-
-    public List<UsuarioGrupo> getAllUserByGrupo(Long idGrupo)
-    {
-        return usuarioGrupoRepository.getAllUserByGrupo(idGrupo);
     }
 
     public UsuarioGrupo salvar(UsuarioGrupo usuarioGrupo)

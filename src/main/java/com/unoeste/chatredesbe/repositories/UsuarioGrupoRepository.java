@@ -15,4 +15,7 @@ public interface UsuarioGrupoRepository extends JpaRepository<UsuarioGrupo, Long
     @Query(value = "SELECT * FROM usuario_grupo WHERE grupo_id = :grupo_id", nativeQuery = true)
     public List<UsuarioGrupo> getAllUserByGrupo(@Param("grupo_id") Long grupo_id);
 
+    @Query(value = "SELECT * FROM usuario_grupo WHERE usuario_id = :idUsuario", nativeQuery = true)
+    public List<UsuarioGrupo> getAllGrupoByUser(@Param("idUsuario") Long idUsuario);
+
 }

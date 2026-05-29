@@ -2,6 +2,7 @@ package com.unoeste.chatredesbe.sockets;
 
 import com.unoeste.chatredesbe.Padrao.MensageiroFacade;
 import com.unoeste.chatredesbe.services.GrupoService;
+import com.unoeste.chatredesbe.services.UsuarioGrupoService;
 import com.unoeste.chatredesbe.services.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -24,6 +25,9 @@ public class Server implements CommandLineRunner
     @Autowired
     private MensageiroFacade mensageiroFacade;
 
+    @Autowired
+    private UsuarioGrupoService usuarioGrupoService;
+
     @Override
     public void run(String... args) throws Exception {
         int porta = 5000;
@@ -39,7 +43,7 @@ public class Server implements CommandLineRunner
             {
                 Socket clienteSocket = serverSocket.accept();
                 System.out.println("Novo Cliente Conectado IP: "+ clienteSocket.getInetAddress());
-                ClientHandler clientHandler = new ClientHandler(clienteSocket, usuarioService, grupoService, mensageiroFacade);
+                ClientHandler clientHandler = new ClientHandler(clienteSocket, usuarioService, grupoService, mensageiroFacade, usuarioGrupoService);
                 new Thread(clientHandler).start();
             }
         }

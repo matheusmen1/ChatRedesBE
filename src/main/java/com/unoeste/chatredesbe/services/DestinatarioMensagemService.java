@@ -65,16 +65,15 @@ public class DestinatarioMensagemService {
         }
     }
 
-    public List<DestinatarioMensagem> getByDestinatariosPendentesByUser(Long id, String status)
+    public List<DestinatarioMensagem> getMensagensDestinariosPendenteAndConfirmadasByUser(Long id, String status)
     {
         try
         {
-            return destinatarioMensagemRepository.findAllByDestinatarioIdAndStatus(id, status);
+            return destinatarioMensagemRepository.getMensagensDestinariosPendenteAndConfirmadasByUser(id, status);
         }
         catch (Exception e)
         {
             return null;
         }
-
     }
 }

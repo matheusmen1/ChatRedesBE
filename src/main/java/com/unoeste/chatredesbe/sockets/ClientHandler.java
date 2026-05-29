@@ -27,21 +27,25 @@ public class ClientHandler implements Runnable {
     private final MensageiroFacade mensageiroFacade;
     private final UsuarioService usuarioService;
     private final GrupoService grupoService;
+    private final UsuarioGrupoService usuarioGrupoService;
 
     private Socket clienteSocket;
     private BufferedReader entrada;
     private PrintWriter saida;
     private Usuario usuarioLogado = null;
     private Usuario solicitacaoMensagem = null;
-
+    private Usuario conversaAtual = null;
+    private Grupo conversaGrupoAtual = null;
+    private List<ConviteGrupo> convitesGruposPendetes = new ArrayList<>();
     public static List<ClientHandler> clientesConectados = new ArrayList<>();
 
 
-    public ClientHandler(Socket clienteSocket, UsuarioService usuarioService, GrupoService grupoService, MensageiroFacade mensageiroFacade) {
+    public ClientHandler(Socket clienteSocket, UsuarioService usuarioService, GrupoService grupoService, MensageiroFacade mensageiroFacade, UsuarioGrupoService usuarioGrupoService) {
         this.clienteSocket = clienteSocket;
         this.usuarioService = usuarioService;
         this.grupoService = grupoService;
         this.mensageiroFacade = mensageiroFacade;
+        this.usuarioGrupoService = usuarioGrupoService;
     }
 
     @Override
@@ -61,40 +65,7 @@ public class ClientHandler implements Runnable {
                 String[] partes = linha.split(" ");
                 comando = partes[0].toLowerCase();
                 switch (comando) {
-                    case "ajuda": {
-                        printInfo("======== COMANDOS ======== ");
-                        printInfo("cadastrar");
-                        printInfo("login");
-                        printInfo("logout");
-                        printInfo("recuperarSenha");
-                        printInfo("status");
-                        printInfo("definirStatus");
-
-                        printInfo("listaUsuarios");
-                        printInfo("listaGrupos");
-                        printInfo("listaSolicitacoes");
-                        printInfo("listaConversas");
-                        printInfo("listaConvites");
-                        printInfo("enviarMensagem");
-                        //printInfo("responderprivado");
-
-                        printInfo("aceitar");
-                        printInfo("responderconvite");
-                        printInfo("recusar");
-                        printInfo("novogrupo");
-                        printInfo("inserir");
-
-                        printInfo("entrargrupo");
-
-                        // entrar &<nomegrupo>: Solicita a entrada em um grupo do qual o usuário ainda não faz parte.
-                        // votar &<nomegrupo> @<usuario_solicitante> <sim|nao>: Resposta dos membros atuais do grupo aprovando ou negando a entrada do solicitante.
-                        printInfo("sairgrupo");
-                        printInfo("mensagemgrupo");
-                        printInfo("mensagemgruposeletiva");
-                        printInfo("=========================== ");
-                        break;
-                    }
-                    //->  perfil e autenticação
+                    // PERFIL E AUTENTICAÇÃO ===========================================================================
                     case "cadastrar": {
                         saida.println("<nome_completo>;<login>;<email>;<senha>");
                         linha = entrada.readLine();
@@ -161,7 +132,45 @@ public class ClientHandler implements Runnable {
                         break;
                     }
 
-                    // -> visualização e listagens
+                    // VISUALIZAÇÃO E LISTAGENS ========================================================================
+                    case "ajuda": {
+                        printInfo("======== COMANDOS ======== ");
+                        printInfo("cadastrar");
+                        printInfo("login");
+                        printInfo("logout");
+                        printInfo("recuperarSenha");
+                        printInfo("status");
+                        printInfo("definirStatus");
+
+                        printInfo("listaUsuarios");
+                        printInfo("listaGrupos");
+                        printInfo("listaSolicitacoes");
+                        printInfo("listaConversas");
+                        printInfo("listaConvites");
+                        printInfo("enviarMensagem");
+                        printInfo("responderprivado");
+
+                        printInfo("aceitarsolicitacao");
+                        printInfo("responderconvite");
+                        printInfo("recusarsolicitacao");
+                        printInfo("novogrupo");
+                        printInfo("inserir");
+
+                        printInfo("entrargrupo");
+                        printInfo("cd");
+                        printInfo("cdg");
+
+                        // votar &<nomegrupo> @<usuario_solicitante> <sim|nao>: Resposta dos membros atuais do grupo aprovando ou negando a entrada do solicitante.
+                        printInfo("sim");
+                        printInfo("nao");
+                        printInfo("simgrupo");
+                        printInfo("naogrupo");
+                        printInfo("sairgrupo");
+                        printInfo("mensagemgrupo");
+                        printInfo("mensagemgruposeletiva");
+                        printInfo("=========================== ");
+                        break;
+                    }
                     case "listausuarios": {//Lista os usuários cadastrados e online.
                         if (usuarioLogado != null)
                             listaUsuarios();
@@ -185,7 +194,10 @@ public class ClientHandler implements Runnable {
                     }
                     case "listaconversas": {
                         if (usuarioLogado != null)
+                        {
                             listaConversasParticulares();
+                            listaConversasGrupos();
+                        }
                         else
                             printAviso("Usuario Nao Logado");
                         break;
@@ -198,6 +210,79 @@ public class ClientHandler implements Runnable {
                         break;
                     }
 
+                    // SOLICITAÇÕES E MENSAGENS PARTICULARES ===========================================================
+                    case "aceitarsolicitacao": {
+                        if (usuarioLogado != null ) {
+                            printAviso("<usuario>");
+                            linha = entrada.readLine();
+                            if (linha != null) {
+                                partes = linha.split(" ");
+                                if (partes.length == 1) {
+                                    // verificar se o usuário existe
+                                    Usuario solicitante = usuarioService.getByApelido(partes[0]);
+                                    if (solicitante != null) {
+                                        ResultadoOperacao<SolicitacaoMensagem> resultadoSoliticacao = mensageiroFacade.confirmarSolicitacao(
+                                                solicitante.getId(), usuarioLogado.getId(), "Confirmada");
+                                        if (resultadoSoliticacao.isSucesso()) {
+                                            printSucesso(resultadoSoliticacao.getMensagem());
+                                            for (int i = 0; i < clientesConectados.size(); i++) {
+                                                ClientHandler clientHandler = clientesConectados.get(i);
+                                                if (clientHandler != null && clientHandler.usuarioLogado.getId().equals(solicitante.getId())) {
+                                                    if (clientHandler.usuarioLogado.getStatus().equals("online")) {
+                                                        clientHandler.printSucesso("@" + usuarioLogado.getApelido() + "Aceitou sua Solicitacao");
+                                                    }
+                                                }
+                                            }
+                                        } else
+                                            printErro(resultadoSoliticacao.getMensagem());
+                                    } else {
+                                        printErro("Usuario digitado nao existe!!");
+                                    }
+                                } else {
+                                    printAviso("Campo(s) Nao Informado");
+                                }
+                            }
+                        }
+                        else
+                            printAviso("Usuario Nao Logado");
+                        break;
+                    }
+                    case "recusarsolicitacao": {
+                        if(usuarioLogado == null) {
+                            printAviso("<usuario>");
+                            linha = entrada.readLine();
+                            if (linha != null) {
+                                partes = linha.split(" ");
+                                if (partes.length == 1) {
+                                    // verificar se o usuário existe
+                                    Usuario solicitante = usuarioService.getByApelido(partes[0]);
+                                    if (solicitante != null) {
+                                        ResultadoOperacao<SolicitacaoMensagem> resultadoSoliticacao = mensageiroFacade.confirmarSolicitacao(
+                                                solicitante.getId(), usuarioLogado.getId(), "Recusada");
+                                        if (resultadoSoliticacao.isSucesso()) {
+                                            printSucesso(resultadoSoliticacao.getMensagem());
+                                            for (int i = 0; i < clientesConectados.size(); i++) {
+                                                ClientHandler clientHandler = clientesConectados.get(i);
+                                                if (clientHandler != null && clientHandler.usuarioLogado.getId().equals(solicitante.getId())) {
+                                                    if (clientHandler.usuarioLogado.getStatus().equals("online")) {
+                                                        clientHandler.printSucesso("@" + usuarioLogado.getApelido() + "Recusou sua Solicitacao");
+                                                    }
+                                                }
+                                            }
+                                        } else
+                                            printErro(resultadoSoliticacao.getMensagem());
+                                    } else {
+                                        printErro("Usuario digitado nao existe!!");
+                                    }
+                                } else {
+                                    printAviso("Campo(s) Nao Informado");
+                                }
+                            }
+                        }
+                        else
+                            printAviso("Usuario Nao Logado");
+                        break;
+                    }
                     case "enviarmensagem": {
                         if (usuarioLogado != null) {
                             if (usuarioLogado.getStatus().equals("online")) {
@@ -219,44 +304,56 @@ public class ClientHandler implements Runnable {
                             printAviso("Usuario Nao Logado");
                         break;
                     }
-
-                    case "responderprivado":// responderprivado <usuario>
-                    {
-
-                    }
-
-                    case "aceitar": {
-                        printAviso("<usuario>");
-                        linha = entrada.readLine();
-                        if (linha != null) {
-                            partes = linha.split(" ");
-                            if (partes.length == 1) {
-                                // verificar se o usuário existe
-                                Usuario solicitante = usuarioService.getByApelido(partes[0]);
-                                if (solicitante != null) {
-                                    ResultadoOperacao<SolicitacaoMensagem> resultadoSoliticacao = mensageiroFacade.confirmarSolicitacao(
-                                            solicitante.getId(), usuarioLogado.getId(), "Confirmada");
-                                    if (resultadoSoliticacao.isSucesso()) {
-                                        printSucesso(resultadoSoliticacao.getMensagem());
-                                        for (int i = 0; i < clientesConectados.size(); i++) {
-                                            ClientHandler clientHandler = clientesConectados.get(i);
-                                            if (clientHandler != null && clientHandler.usuarioLogado.getId().equals(solicitante.getId())) {
-                                                if (clientHandler.usuarioLogado.getStatus().equals("online")) {
-                                                    clientHandler.printSucesso("@" + usuarioLogado.getApelido() + "Aceitou sua Solicitacao");
+                    case "cd":{
+                        // CHANGE DIRECTORY, PARA IR EM CONVERSAS PARTICULARES
+                        if (usuarioLogado != null)
+                        {
+                            printInfo("( <usuario> | <..> )");
+                            linha = entrada.readLine();
+                            if (linha != null)
+                            {
+                                partes = linha.split(" ");
+                                if (partes.length == 1)
+                                {
+                                    if(conversaAtual != null) // esta conversando no particular
+                                    {
+                                        if(partes[0].equalsIgnoreCase(".."))
+                                        {
+                                            conversaAtual = null;
+                                            printSucesso("Saindo da conversa..");
+                                        }
+                                        else
+                                        {
+                                            Usuario usuario = usuarioService.getByApelido(partes[0]);
+                                            if(usuario == null)
+                                                printErro("Esse usuario não existe!!");
+                                            else
+                                            {
+                                                // verificar se esse usuário pode conversar com esse usuario
+                                                ResultadoOperacao<List<Mensagem>> retorno = mensageiroFacade.getMensagensConversa(usuarioLogado.getId(), usuario.getId());
+                                                if(retorno.isSucesso())
+                                                {
+                                                    listarMensagensConversaParticular(retorno.getDados(), usuario);
+                                                    printSucesso(retorno.getMensagem());
                                                 }
+                                                else
+                                                    printErro(retorno.getMensagem());
                                             }
                                         }
-                                    } else
-                                        printErro(resultadoSoliticacao.getMensagem());
-                                } else {
-                                    printErro("Usuario digitado nao existe!!");
+                                    }
+                                    else if(conversaGrupoAtual != null) // esta conversando no grupo
+                                        printAviso("Voce esta conversando em um grupo, para sair, use: cdg ..");
                                 }
-                            } else {
-                                printAviso("Campo(s) Nao Informado");
+                                else
+                                    printAviso("Campo(s) Nao Informado");
                             }
                         }
+                        else
+                            printAviso("Usuario Nao Logado");
                         break;
                     }
+
+                    // CONVITES E GRUPOS ===============================================================================
                     case "responderconvite": {
                         if (usuarioLogado != null) {
                             printAviso("<nomegrupo> <sim|nao>");
@@ -264,7 +361,8 @@ public class ClientHandler implements Runnable {
                             if (linha != null) {
                                 partes = linha.split(" ");
                                 if (partes.length == 2) {
-                                    responderConvite(partes[0], partes[1]);
+                                    Grupo grupo = grupoService.getByName(partes[0]);
+                                    responderConvite(grupo, partes[1]);
                                 } else {
                                     printAviso("Campo(s) Nao Informado");
                                 }
@@ -273,41 +371,8 @@ public class ClientHandler implements Runnable {
                             printAviso("Usuario Nao Logado");
                         break;
                     }
-                    case "recusar": {
-                        printAviso("<usuario>");
-                        linha = entrada.readLine();
-                        if (linha != null) {
-                            partes = linha.split(" ");
-                            if (partes.length == 1) {
-                                // verificar se o usuário existe
-                                Usuario solicitante = usuarioService.getByApelido(partes[0]);
-                                if (solicitante != null) {
-                                    ResultadoOperacao<SolicitacaoMensagem> resultadoSoliticacao = mensageiroFacade.confirmarSolicitacao(
-                                            solicitante.getId(), usuarioLogado.getId(), "Recusada");
-                                    if (resultadoSoliticacao.isSucesso()) {
-                                        printSucesso(resultadoSoliticacao.getMensagem());
-                                        for (int i = 0; i < clientesConectados.size(); i++) {
-                                            ClientHandler clientHandler = clientesConectados.get(i);
-                                            if (clientHandler != null && clientHandler.usuarioLogado.getId().equals(solicitante.getId())) {
-                                                if (clientHandler.usuarioLogado.getStatus().equals("online")) {
-                                                    clientHandler.printSucesso("@" + usuarioLogado.getApelido() + "Recusou sua Solicitacao");
-                                                }
-                                            }
-                                        }
-                                    } else
-                                        printErro(resultadoSoliticacao.getMensagem());
-                                } else {
-                                    printErro("Usuario digitado nao existe!!");
-                                }
-                            } else {
-                                printAviso("Campo(s) Nao Informado");
-                            }
-                        }
-                        break;
-                    }
-                    // -> GERENCIAMENTO DE GRUPOS
-                    case "novogrupo":// novogrupo <nomegrupo>: Cria um novo grupo e adiciona o criador automaticamente nele.
-                    {
+                    case "novogrupo": {
+                        // novogrupo <nomegrupo>: Cria um novo grupo e adiciona o criador automaticamente nele.
                         if (usuarioLogado != null) {
                             if (usuarioLogado.getStatus().equals("online")) {
                                 printAviso("<nomegrupo>");
@@ -347,9 +412,8 @@ public class ClientHandler implements Runnable {
                             printAviso("Usuario Nao Logado");
                         break;
                     }
-
-                    // entrargrupo &<nomegrupo>: Solicita a entrada em um grupo do qual o usuário ainda não faz parte.
                     case "entrargrupo": {
+                        // entrargrupo &<nomegrupo>: Solicita a entrada em um grupo do qual o usuário ainda não faz parte.
                         if (usuarioLogado != null) {
                             if (usuarioLogado.getStatus().equals("online"))
                             {
@@ -372,12 +436,8 @@ public class ClientHandler implements Runnable {
                         else
                             printAviso("Usuario Nao Logado");
                     }
-
-                    // votar &<nomegrupo> @<usuario_solicitante> <sim|nao>: Resposta dos membros atuais do grupo aprovando ou negando a entrada do solicitante.
-
-
-                    case "sairgrupo":// sair &<nomegrupo>: O usuário logado sai do grupo especificado (avisando os demais).
-                    {
+                    case "sairgrupo": {
+                        // sair &<nomegrupo>: O usuário logado sai do grupo especificado (avisando os demais).
                         if (usuarioLogado != null) {
                             printInfo("&<nomegrupo>");
                             linha = entrada.readLine().trim();
@@ -388,24 +448,87 @@ public class ClientHandler implements Runnable {
                             printAviso("Usuario Nao esta Logado");
                         break;
                     }
-                    //-> mensagens em Grupo
-
-                    // &<nomegrupo>: <mensagem>: Envia uma mensagem para todos os participantes do grupo.
                     case "mensagemgrupo": {
-                        if (usuarioLogado != null && usuarioLogado.getStatus().equals("online")) {
+                        // &<nomegrupo>: <mensagem>: Envia uma mensagem para todos os participantes do grupo.
+                        if (usuarioLogado != null && usuarioLogado.getStatus().equals("online"))
+                        {
                             printInfo("&<nomegrupo>: <mensagem>");
                             linha = entrada.readLine();
-                            if (linha != null) {
+                            if (linha != null)
+                            {
                                 partes = linha.split(":");
                                 if (partes.length == 2 && partes[0].charAt(0) == '&')
                                     enviarMensagemGrupo(partes);
                                 else
                                     printAviso("Formato Invalido");
                             }
-                        } else
+                        }
+                        else if(usuarioLogado == null)
+                            printAviso("Usuario Nao Logado");
+                        else
                             printAviso("Usuario Nao esta Online");
                         break;
                     }
+                    case "responderprivado": {
+                        // preciso estar em um grupo para conseguir enviar uma mensagem particular para um usuário
+                        // responderprivado <usuario>
+                        if(usuarioLogado!= null)
+                        {
+
+                        }
+                        else
+                            printAviso("Usuario Nao Logado");
+                    }
+                    case "cdg":{
+                        // CHANGE DIRECTORY DE GRUPOS, PARA IR EM CONVERSAS EM GRUPOS
+                        if (usuarioLogado != null)
+                        {
+                            printInfo("( <nomeGrupo> | <..> )");
+                            linha = entrada.readLine();
+                            if (linha != null)
+                            {
+                                partes = linha.split(" ");
+                                if (partes.length == 1)
+                                {
+                                    if(conversaGrupoAtual != null) // esta conversando no grupo
+                                    {
+                                        if(partes[0].equalsIgnoreCase(".."))
+                                        {
+                                            conversaGrupoAtual = null;
+                                            printSucesso("Saindo da conversa..");
+                                        }
+                                        else
+                                        {
+                                            Grupo grupo = grupoService.getByName(partes[0]);
+                                            if(grupo == null)
+                                                printErro("Esse grupo não existe!!");
+                                            else
+                                            {
+                                                // verificar se esse usuário pode ver as mensagens do grupo
+                                                UsuarioGrupo ug = usuarioGrupoService.getByUsuarioGrupo(grupo.getId(), usuarioLogado.getId());
+                                                if(ug == null)
+                                                    printErro("Voce nao pertence a esse grupo!!");
+                                                else {
+                                                    conversaGrupoAtual = grupo;
+                                                    listarMensagensGrupoId(grupo);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else if(conversaAtual != null) // esta conversando no particular
+                                        printAviso("Voce esta em uma conversa particular, para sair, use: cd ..");
+                                }
+                                else
+                                    printAviso("Campo(s) Nao Informado");
+                            }
+                        }
+                        else
+                            printAviso("Usuario Nao Logado");
+                        break;
+                    }
+
+                    // votar &<nomegrupo> @<usuario_solicitante> <sim|nao>: Resposta dos membros atuais do grupo aprovando ou negando a entrada do solicitante.
+
                     // &<nomegrupo><@usuario1,@usuario2>: <mensagem>: Envia uma mensagem dentro do grupo apenas para os participantes especificados.
                     case "mensagemgruposeletiva": {
                         if (usuarioLogado != null && usuarioLogado.getStatus().equals("online")) {
@@ -445,49 +568,125 @@ public class ClientHandler implements Runnable {
                             printAviso("Usuario Nao esta Online");
                         break;
                     }
+
+                    // RESPOSTAS =======================================================================================
                     case "sim": {
-                        if (solicitacaoMensagem != null) {
-                            printSucesso("Voce Aceitou a Solicitacao de @" + solicitacaoMensagem.getApelido());
-                            for (int i = 0; i < clientesConectados.size(); i++) {
-                                ClientHandler clientHandler = clientesConectados.get(i);
-                                if (clientHandler != null && clientHandler.usuarioLogado.getId().equals(solicitacaoMensagem.getId())) {
-                                    clientHandler.printSucesso("@" + usuarioLogado.getApelido() + " Aceitou sua Solicitacao");
-                                    mensageiroFacade.confirmarSolicitacao(solicitacaoMensagem.getId(), usuarioLogado.getId(), "Confirmada");
+                        if(usuarioLogado != null)
+                        {
+                            if (solicitacaoMensagem != null)
+                            {
+                                printSucesso("Voce Aceitou a Solicitacao de @" + solicitacaoMensagem.getApelido());
+                                for (int i = 0; i < clientesConectados.size(); i++)
+                                {
+                                    ClientHandler clientHandler = clientesConectados.get(i);
+                                    if (clientHandler != null && clientHandler.usuarioLogado.getId().equals(solicitacaoMensagem.getId()))
+                                    {
+                                        clientHandler.printSucesso("@" + usuarioLogado.getApelido() + " Aceitou sua Solicitacao");
+                                        mensageiroFacade.confirmarSolicitacao(solicitacaoMensagem.getId(), usuarioLogado.getId(), "Confirmada");
+                                    }
                                 }
+                                solicitacaoMensagem = null;
                             }
-                            solicitacaoMensagem = null;
-                        } else {
-                            printAviso("Voce Nao Tem Solicitacoes Pendentes");
+                            else
+                                printAviso("Voce Nao Tem Solicitacoes Pendentes");
                         }
+                        else
+                            printAviso("Usuario Nao Logado");
+                        break;
+                    }
+                    case "simgrupo": {
+                        // ACEITAR O CONVITE DE UM GRUPO
+                        if(usuarioLogado != null)
+                        {
+                            if (!convitesGruposPendetes.isEmpty())
+                            {
+                                ConviteGrupo conviteGrupo = convitesGruposPendetes.get(0);
+                                convitesGruposPendetes.remove(0);
+                                ResultadoOperacao<ConviteGrupo> resultado = mensageiroFacade.alterarConviteGrupo(conviteGrupo.getGrupo().getId(), conviteGrupo.getConvidado().getId(), 1);
+                                if (resultado.isSucesso())
+                                {
+                                    printSucesso("[SISTEMA]: Voce Entrou no Grupo" +" ("+conviteGrupo.getGrupo().getNome()+")" );
+                                    for (int i = 0; i < clientesConectados.size(); i++)
+                                    {
+                                        ClientHandler clientHandler = clientesConectados.get(i);
+                                        if (clientHandler != null && clientHandler.usuarioLogado.getId().equals(conviteGrupo.getSolicitante().getId()))
+                                        {
+                                            clientHandler.printSucesso("[SISTEMA]: "+"@"+usuarioLogado.getApelido()+" Aceitou seu Convite do Grupo" +" ("+conviteGrupo.getGrupo().getNome()+")" );
+                                        }
+                                    }
+                                }
+                                else
+                                    printErro(resultado.getMensagem());
+                            }
+                            else
+                                printAviso("Voce Nao Tem Convites Pendentes");
+                        }
+                        else
+                            printAviso("Usuario Nao Logado");
                         break;
                     }
                     case "nao": {
-                        if (solicitacaoMensagem != null) {
-                            printSucesso("Voce Recusou a Solicitacao de @" + solicitacaoMensagem.getApelido());
-                            for (int i = 0; i < clientesConectados.size(); i++) {
-                                ClientHandler clientHandler = clientesConectados.get(i);
-                                if (clientHandler != null && clientHandler.usuarioLogado.getId().equals(solicitacaoMensagem.getId())) {
-                                    clientHandler.printSucesso("@" + usuarioLogado.getApelido() + " Recusou sua Solicitacao");
-                                    mensageiroFacade.confirmarSolicitacao(solicitacaoMensagem.getId(), usuarioLogado.getId(), "Recusada");
+                        if(usuarioLogado != null) {
+                            if (solicitacaoMensagem != null)
+                            {
+                                printSucesso("Voce Recusou a Solicitacao de @" + solicitacaoMensagem.getApelido());
+                                for (int i = 0; i < clientesConectados.size(); i++)
+                                {
+                                    ClientHandler clientHandler = clientesConectados.get(i);
+                                    if (clientHandler != null && clientHandler.usuarioLogado.getId().equals(solicitacaoMensagem.getId()))
+                                    {
+                                        clientHandler.printSucesso("@" + usuarioLogado.getApelido() + " Recusou sua Solicitacao");
+                                        mensageiroFacade.confirmarSolicitacao(solicitacaoMensagem.getId(), usuarioLogado.getId(), "Recusada");
+                                    }
                                 }
+                                solicitacaoMensagem = null;
                             }
-                            solicitacaoMensagem = null;
-                        } else {
-                            printAviso("Voce Nao Tem Solicitacoes Pendentes");
+                            else
+                                printAviso("Voce Nao Tem Solicitacoes Pendentes");
                         }
+                        else
+                            printAviso("Usuario Nao Logado");
+                    }
+                    case "naogrupo": {
+                        if(usuarioLogado != null) {
+                            if (!convitesGruposPendetes.isEmpty())
+                            {
+                                ConviteGrupo conviteGrupo = convitesGruposPendetes.get(0);
+                                convitesGruposPendetes.remove(0);
+                                ResultadoOperacao<ConviteGrupo> resultado = mensageiroFacade.alterarConviteGrupo(conviteGrupo.getGrupo().getId(), conviteGrupo.getConvidado().getId(), 2);
+                                if (resultado.isSucesso())
+                                {
+                                    printSucesso("[SISTEMA]: "+"@"+usuarioLogado.getApelido()+" Recusou seu Convite do Grupo" +" ("+conviteGrupo.getGrupo().getNome()+")" );
+                                    for (int i = 0; i < clientesConectados.size(); i++)
+                                    {
+                                        ClientHandler clientHandler = clientesConectados.get(i);
+                                        if (clientHandler != null && clientHandler.usuarioLogado.getId().equals(conviteGrupo.getSolicitante().getId()))
+                                        {
+                                            clientHandler.printSucesso("[SISTEMA]: "+"@"+usuarioLogado.getApelido()+" Recusou seu Convite do Grupo" +" ("+conviteGrupo.getGrupo().getNome()+")" );
+                                        }
+                                    }
+                                }
+
+                            }
+                            else
+                                printAviso("Voce Nao Tem Convites Pendentes");
+                        }
+                        else
+                            printAviso("Usuario Nao Logado");
                     }
                     default: {
                         printAviso("Comando Invalido");
                         break;
                     }
                 }
-                //saida.println();
-
             } while (!comando.equals("logout"));
-
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             printErro("Erro na Conexão com o Cliente: " + e.getMessage());
-        } finally {
+        }
+        finally
+        {
             try {
                 if (usuarioLogado != null) {
                     desconectarUsuario();
@@ -686,19 +885,59 @@ public class ClientHandler implements Runnable {
             printErro(resultado.getMensagem());
     }
 
-    private void listConvites() {
-        ResultadoOperacao<List<ConviteGrupo>> resultado = mensageiroFacade.getAllConvitesByConvidado(usuarioLogado.getId());
+    private void listaConversasGrupos(){
+        ResultadoOperacao<List<UsuarioGrupo>> resultado = mensageiroFacade.getConversasGrupos(usuarioLogado.getId());
         if (resultado.getDados() != null && !resultado.getDados().isEmpty()) {
             for (int i = 0; i < resultado.getDados().size(); i++) {
-                printInfo("Grupo: " + resultado.getDados().get(i).getGrupo() + " [" + resultado.getDados().get(i).getStatus() + "]");
+                printInfo("Grupo: " + resultado.getDados().get(i).getGrupo().getNome());
             }
             printSucesso(resultado.getMensagem());
         } else
             printErro(resultado.getMensagem());
     }
 
+    private void listConvites() {
+        ResultadoOperacao<List<ConviteGrupo>> resultado = mensageiroFacade.getAllConvitesByConvidado(usuarioLogado.getId());
+        if (resultado.getDados() != null && !resultado.getDados().isEmpty()) {
+            for (int i = 0; i < resultado.getDados().size(); i++) {
+                printInfo("Grupo: " + resultado.getDados().get(i).getGrupo().getNome() + " [" + resultado.getDados().get(i).getStatus() + "]");
+            }
+            printSucesso(resultado.getMensagem());
+        } else
+            printErro(resultado.getMensagem());
+    }
+
+    private void listarMensagensGrupoId(Grupo grupo)
+    {
+        ResultadoOperacao<List<Mensagem>> resultado = mensageiroFacade.getMensagensGrupo(grupo.getId());
+        if (resultado.getDados() != null && !resultado.getDados().isEmpty()) {
+            DateTimeFormatter formatador = DateTimeFormatter.ofPattern("HH:mm");
+            printInfo("Grupo: "+grupo.getNome()+" ===================================");
+            for (int i = 0; i < resultado.getDados().size(); i++) {
+                Mensagem mensagem = resultado.getDados().get(i);
+                String horarioEnvio = mensagem.getDataHoraEnvio().format(formatador);
+                printInfo("[" + horarioEnvio + "] " + "@" + mensagem.getRemetente().getApelido() + ": " + mensagem.getConteudo());
+            }
+            printSucesso(resultado.getMensagem());
+        } else
+            printErro(resultado.getMensagem());
+    }
+
+    private void listarMensagensConversaParticular(List<Mensagem> mensagens, Usuario user)
+    {
+        if(mensagens != null && !mensagens.isEmpty())
+        {
+            DateTimeFormatter formatador = DateTimeFormatter.ofPattern("HH:mm");
+            printInfo(user.getNome()+": ===================================");
+            for (Mensagem mensagem : mensagens) {
+                String horarioEnvio = mensagem.getDataHoraEnvio().format(formatador);
+                printInfo("[" + horarioEnvio + "] " + "@" + mensagem.getRemetente().getApelido() + ": " + mensagem.getConteudo());
+            }
+        }
+    }
+
     private void recuperarMensagensPendentes() {
-        List<DestinatarioMensagem> pendentes = mensageiroFacade.getMensagensDestinariosPendenteByUser(usuarioLogado.getId(), "Pendente");
+        List<DestinatarioMensagem> pendentes = mensageiroFacade.getMensagensDestinariosPendenteAndConfirmadasByUser(usuarioLogado.getId(), "Pendente");
         if (pendentes != null && pendentes.size() > 0) {
             printAviso("Voce Tem " + pendentes.size() + " Mensagens Pendentes");
             DateTimeFormatter formatador = DateTimeFormatter.ofPattern("HH:mm");
@@ -728,11 +967,25 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void recuperarConvitesGruposPendentes() {
+    private void recuperarConvitesGruposPendentes()
+    {
+        ResultadoOperacao<List<ConviteGrupo>> resultado = mensageiroFacade.getAllConvitesGruposByIdPendentes(usuarioLogado.getId(), "Pendente");
+        List<ConviteGrupo> pendentes = resultado.getDados();
+        if (pendentes != null && pendentes.size() > 0)
+        {
+            printAviso("Voce Tem " + pendentes.size() + " Convite(s) de Grupo(s) Pendente(s)");
+            printInfo("===================================");
+            for (int i = 0; i < pendentes.size(); i++)
+            {
+                ConviteGrupo conviteGrupo = pendentes.get(i);
+                printInfo("@" + conviteGrupo.getSolicitante().getApelido() + " Enviou um Convite de Grupo"+" ("+conviteGrupo.getGrupo().getNome()+")");
+            }
+            printInfo("===================================");
+        }
 
     }
-
-    private void recuperarVotosSolicitacoesPendentes() {
+    private void recuperarVotosSolicitacoesPendentes()
+    {
 
     }
 
@@ -836,6 +1089,21 @@ public class ClientHandler implements Runnable {
             }
         }
         ResultadoOperacao<List<ConviteGrupo>> retorno = mensageiroFacade.addUsersGrupo(nomeGrupo, usuarioLogado.getId(), users);
+        List<ConviteGrupo> conviteGrupos = retorno.getDados();
+        for (int i = 0; i < conviteGrupos.size(); i++)
+        {
+            ConviteGrupo conviteGrupo = conviteGrupos.get(i);
+            for (int j = 0; j < clientesConectados.size(); j++)
+            {
+                ClientHandler clientHandler = clientesConectados.get(j);
+                if (clientHandler != null && clientHandler.usuarioLogado.getId().equals(conviteGrupo.getConvidado().getId()))
+                {
+                    clientHandler.convitesGruposPendetes.add(conviteGrupo);
+                    clientHandler.printAviso("[SISTEMA]: O Usuario @" + this.usuarioLogado.getApelido() +
+                            " Enviou um Convite Para o Grupo (" + nomeGrupo + "). Voce Aceita ? (simgrupo/naogrupo)");
+                }
+            }
+        }
         String mensagem = retorno.getMensagem();
         boolean sucesso = retorno.isSucesso();
 
@@ -855,6 +1123,7 @@ public class ClientHandler implements Runnable {
                 usuarioLogado = mensageiroFacade.alterarStatus(usuarioLogado.getId(), "online").getDados();
                 recuperarMensagensPendentes();
                 recuperarSolicitacoesMensagemPendentes();
+                recuperarConvitesGruposPendentes();
                 return true;
             } else {
                 printAviso("Usuario Nao Encontrado");
@@ -919,14 +1188,21 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void responderConvite(String nomeGrupo, String resposta)
+    private void responderConvite(Grupo grupo, String resposta)
     {
+        Integer valor;
         if(resposta.equalsIgnoreCase("sim"))
+        {
             resposta = "Confirmado";
+            valor = 1;
+        }
         else
+        {
             resposta = "Recusado";
+            valor = 0;
+        }
 
-        ResultadoOperacao<ConviteGrupo> resultado = mensageiroFacade.responderConvite(nomeGrupo, usuarioLogado.getId(), resposta);
+        ResultadoOperacao<ConviteGrupo> resultado = mensageiroFacade.alterarConviteGrupo(grupo.getId(), usuarioLogado.getId(), valor);
         if(resultado.isSucesso())
             printSucesso(resultado.getMensagem());
         else

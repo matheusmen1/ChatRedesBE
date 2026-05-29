@@ -1,5 +1,6 @@
 package com.unoeste.chatredesbe.services;
 
+import com.unoeste.chatredesbe.entities.ConviteGrupo;
 import com.unoeste.chatredesbe.entities.SolicitacaoMensagem;
 import com.unoeste.chatredesbe.entities.Usuario;
 import com.unoeste.chatredesbe.repositories.SolicitacaoMensagemRepository;
@@ -27,6 +28,7 @@ public class SolicitacaoMensagemService
     {
         return solicitacaoMensagemRepository.getAllSolicitacoesByIdPendentes(idUsuario, status);
     }
+
     public List<SolicitacaoMensagem> getConversas(Long idUsuario)
     {
         return solicitacaoMensagemRepository.getConversas(idUsuario);

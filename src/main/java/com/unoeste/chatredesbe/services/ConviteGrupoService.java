@@ -22,7 +22,10 @@ public class ConviteGrupoService
     {
         return conviteGrupoRepository.getAllConvitesByConvidado(idConvidado);
     }
-
+    public List<ConviteGrupo> getAllConvitesGruposByIdPendentes(Long idUsuario, String status)
+    {
+        return conviteGrupoRepository.findAllByConvidadoIdAndStatus(idUsuario, status);
+    }
     public ConviteGrupo getById(Long id)
     {
         return conviteGrupoRepository.findById(id).orElse(null);

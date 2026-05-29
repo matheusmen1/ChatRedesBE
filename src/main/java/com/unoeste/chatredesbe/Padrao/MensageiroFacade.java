@@ -1,6 +1,7 @@
 package com.unoeste.chatredesbe.Padrao;
 
 import com.unoeste.chatredesbe.entities.*;
+import com.unoeste.chatredesbe.repositories.UsuarioRepository;
 import com.unoeste.chatredesbe.services.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,8 @@ public class MensageiroFacade
     @Autowired private ConviteGrupoService conviteGrupoService;
     @Autowired private SolicitacaoEntradaGrupoService solicitacaoEntradaGrupoService;
     @Autowired private VotoSolicitacaoService votoSolicitacaoService;
+    @Autowired
+    private UsuarioRepository usuarioRepository;
 
     // ===================================================================================================================
     // GET's
@@ -31,14 +34,28 @@ public class MensageiroFacade
      * */
     public ResultadoOperacao<List<Mensagem>> getMensagensConversa(Long idOrigem, Long idDestino)
     {
+        // verificar se os usuários existem
+        Usuario user1 = usuarioService.getById(idOrigem);
+        Usuario user2 = usuarioService.getById(idDestino);
+        if(user1 == null || user2 == null)
+            return ResultadoOperacao.erro("Usuario nao existe!!");
+
+        // verificar se o origem pode enviar mensagem para o destino
+        SolicitacaoMensagem sm = solicitacaoMensagemService.getByUsers(user1, user2);
+        if(sm == null)
+            return ResultadoOperacao.erro("Voce nunca solicitou uma conversa com "+user2.getNome());
+        else if(sm.getStatus().equalsIgnoreCase("rejeitada"))
+            return ResultadoOperacao.erro("Voces nao podem se comunicar!!. "+user2.getNome()+" nao te aceitou!!");
+        else if(sm.getStatus().equalsIgnoreCase("pendente"))
+            return ResultadoOperacao.erro("Voces nao podem se comunicar!!. "+user2.getNome()+" ainda nao te aceitou!!");
+
         // implementar no banco para ser mais performático
         List<Mensagem> mensagensConversa = mensagemService.getAllConversa(idOrigem, idDestino);
 
         if(!mensagensConversa.isEmpty())
-        {
-            return ResultadoOperacao.sucesso("Mensagens encontradas com sucesso!!", mensagensConversa);
-        }
-        return ResultadoOperacao.erro("Nenhuma mensagem encontrada!!");
+            return ResultadoOperacao.sucesso("Mensagens encontradas com sucesso!", mensagensConversa);
+        else
+            return ResultadoOperacao.sucesso("Nenhuma mensagem encontrada!", null);
     }
 
     /**
@@ -55,6 +72,27 @@ public class MensageiroFacade
                 return ResultadoOperacao.erro("Erro ao recuperar Conversas Particulares!!");
             else
                 return ResultadoOperacao.erro("Nenhuma conversa particular encontrada!!");
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return ResultadoOperacao.erro("Erro!! " + e.getMessage());
+        }
+    }
+
+    /**
+     * Método para listar todas as conversas com Grupos
+     * */
+    public ResultadoOperacao<List<UsuarioGrupo>> getConversasGrupos(Long idUsuario)
+    {
+        try
+        {
+            List<UsuarioGrupo> conversasGrupos = usuarioGrupoService.getAllGrupoByUser(idUsuario);
+            if (conversasGrupos != null && !conversasGrupos.isEmpty())
+                return ResultadoOperacao.sucesso("Conversas encontradas com sucesso!", conversasGrupos);
+            else if(conversasGrupos == null)
+                return ResultadoOperacao.erro("Erro ao recuperar Conversas dos Grupos!!");
+            else
+                return ResultadoOperacao.sucesso("Nenhuma conversa com Grupo encontrada!!", null);
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -154,7 +192,21 @@ public class MensageiroFacade
             return ResultadoOperacao.erro("Erro!! " + e.getMessage());
         }
     }
-
+    public ResultadoOperacao<List<ConviteGrupo>> getAllConvitesGruposByIdPendentes(Long idUsuario, String status)
+    {
+        try
+        {
+            List<ConviteGrupo> conviteGrupos = conviteGrupoService.getAllConvitesGruposByIdPendentes(idUsuario, status);
+            if(conviteGrupos != null && !conviteGrupos.isEmpty())
+                return ResultadoOperacao.sucesso("Convites encontrados com sucesso!", conviteGrupos);
+            else
+                return ResultadoOperacao.erro("Nenhuma Convite Encontrado!!");
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return ResultadoOperacao.erro("Erro!! " + e.getMessage());
+        }
+    }
     public ResultadoOperacao<List<ConviteGrupo>> getAllConvitesByConvidado(Long idConvidado)
     {
         try
@@ -222,14 +274,18 @@ public class MensageiroFacade
                     new DestinatarioMensagem(destino, mensagemSalva, "Pendente", mensagemSalva.getDataHoraEnvio()));
 
             if (solicitacao != null && "Confirmada".equalsIgnoreCase(solicitacao.getStatus())) {
-                return ResultadoOperacao.sucesso("Mensagem Enviada com Sucesso", dm);
+                return ResultadoOperacao.sucesso("Mensagem Enviada com Sucesso!", dm);
+            }
+            else if(solicitacao != null)
+            {
+                return ResultadoOperacao.sucesso("Mensagem Enviada mas o Destino Ainda Nao Aceitou", dm);
             }
 
             solicitacaoMensagemService.salvar(new SolicitacaoMensagem(origem, destino, "Pendente"));
 
             if (solicitacao == null)
             {
-                return ResultadoOperacao.erro("Enviando Solicitacaoo de Mensagem Para " + destino.getApelido() + "...");
+                return ResultadoOperacao.erro("Enviando Solicitacao de Mensagem Para " + destino.getApelido() + "...");
             }
 
             // Ja recebeu uma solicitacao de mensagem antes
@@ -501,7 +557,6 @@ public class MensageiroFacade
                         solicitacaoMensagemService.salvar(solicitacaoMensagem); //editar
                         return ResultadoOperacao.sucesso("Solicitação recusada com sucesso!!", solicitacaoMensagem);
                     }
-
                 }
                 else
                 {
@@ -555,7 +610,7 @@ public class MensageiroFacade
      *      Aceitar (1),
      *      Rejeitar (0)
      * */
-    public ResultadoOperacao<Object> alterarConviteGrupo(Long idGrupo, Long idConvidado, Integer voto)
+    public ResultadoOperacao<ConviteGrupo> alterarConviteGrupo(Long idGrupo, Long idConvidado, Integer voto)
     {
         try{
             // verifica se existe o convite
@@ -572,9 +627,10 @@ public class MensageiroFacade
                 Usuario usuario = new Usuario(idConvidado);
                 Grupo grupo = new Grupo(idGrupo);
                 UsuarioGrupo usuarioGrupo = new UsuarioGrupo(usuario, grupo, LocalDateTime.now());
-                usuarioGrupo = usuarioGrupoService.salvar(usuarioGrupo);
+                usuarioGrupoService.salvar(usuarioGrupo);
+                mensagemService.salvar(new Mensagem(null, "Usuario "+usuario.getNome()+" entrou no grupo!", grupo,LocalDateTime.now()));
 
-                return ResultadoOperacao.sucesso("Convite confirmado com sucesso!!", usuarioGrupo);
+                return ResultadoOperacao.sucesso("Convite confirmado com sucesso!!", conviteGrupo);
             }
             else
             {
@@ -583,7 +639,9 @@ public class MensageiroFacade
 
                 return ResultadoOperacao.sucesso("Convite rejeitado com sucesso!!", conviteGrupo);
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             e.printStackTrace();
             return ResultadoOperacao.erro("Erro!! " + e.getMessage());
         }
@@ -694,41 +752,6 @@ public class MensageiroFacade
         }
     }
 
-    public ResultadoOperacao<ConviteGrupo> responderConvite(String nomeGrupo, Long idConvidado, String resposta)
-    {
-        try
-        {
-            // verificar se o grupo existe
-            Grupo grupo = grupoService.getByName(nomeGrupo);
-            if(grupo == null)
-                return ResultadoOperacao.erro("Grupo nao existe!!");
-
-            // verificar se existe o convidado
-            Usuario usuario = usuarioService.getById(idConvidado);
-            if(usuario == null)
-                return ResultadoOperacao.erro("Usuario nao existe");
-
-            // verifica se existe esse convite
-            ConviteGrupo convite = conviteGrupoService.getByGrupoConvidado(grupo.getId(), idConvidado);
-            if(convite == null)
-                return ResultadoOperacao.erro("Esse convite nao existe!!");
-
-            // alterar o convite
-            convite.setStatus(resposta);
-            convite = conviteGrupoService.salvar(convite);
-
-            // criar uma associação do convidado com o grupo
-            UsuarioGrupo ug = usuarioGrupoService.salvar(new UsuarioGrupo(usuario, grupo, LocalDateTime.now()));
-
-            return ResultadoOperacao.sucesso("O Convite foi alterado para: " + convite.getStatus()+ " Voce foi adicionado ao grupo!", convite);
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-            return ResultadoOperacao.erro("Erro interno do servidor!! "+ e.getMessage());
-        }
-    }
-
     // ===================================================================================================================
     // DELETE's
     // ===================================================================================================================
@@ -775,10 +798,10 @@ public class MensageiroFacade
         }
     }
 
-    public List<DestinatarioMensagem> getMensagensDestinariosPendenteByUser(Long id, String status)
+    public List<DestinatarioMensagem> getMensagensDestinariosPendenteAndConfirmadasByUser(Long id, String status)
     {
         try {
-            return destinatarioMensagemService.getByDestinatariosPendentesByUser(id, status);
+            return destinatarioMensagemService.getMensagensDestinariosPendenteAndConfirmadasByUser(id, status);
 
         }
         catch (Exception e){}
