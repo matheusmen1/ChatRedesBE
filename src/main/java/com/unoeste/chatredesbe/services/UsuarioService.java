@@ -36,8 +36,7 @@ public class UsuarioService {
     public Usuario salvar(Usuario usuario)
     {
         try {
-            Usuario novoUsuario = usuarioRepository.save(usuario);
-            return usuarioRepository.save(novoUsuario);
+            return usuarioRepository.save(usuario);
         }
         catch (Exception e)
         {
@@ -70,4 +69,12 @@ public class UsuarioService {
         }
     }
 
+    public List<Usuario> getByStatus()
+    {
+        List<Usuario> usuarios = usuarioRepository.getUsuarioByStatus();
+        if (!usuarios.isEmpty())
+            return usuarios;
+        else
+            return null;
+    }
 }

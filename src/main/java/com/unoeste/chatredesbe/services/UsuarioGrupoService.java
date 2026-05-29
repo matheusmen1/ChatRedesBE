@@ -28,6 +28,10 @@ public class UsuarioGrupoService
         return usuarioGrupoRepository.getByUsuarioGrupo(idGrupo, idUsuario);
     }
 
+    public List<UsuarioGrupo> getAllUserByGrupo(Long idGrupo)
+    {
+        return usuarioGrupoRepository.getAllUserByGrupo(idGrupo);
+    }
 
     public UsuarioGrupo salvar(UsuarioGrupo usuarioGrupo)
     {

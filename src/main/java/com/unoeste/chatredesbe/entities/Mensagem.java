@@ -33,6 +33,13 @@ public class Mensagem {
         this.dataHoraEnvio = dataHoraEnvio;
     }
 
+    public Mensagem(Usuario remetente, String conteudo, Grupo grupo, LocalDateTime dataHoraEnvio) {
+        this.remetente = remetente;
+        this.conteudo = conteudo;
+        this.grupo = grupo;
+        this.dataHoraEnvio = dataHoraEnvio;
+    }
+
     public Mensagem()
     {
         this(0L, null, null, null, null);

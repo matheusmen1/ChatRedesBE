@@ -1,6 +1,8 @@
 package com.unoeste.chatredesbe.services;
 
 import com.unoeste.chatredesbe.entities.DestinatarioMensagem;
+import com.unoeste.chatredesbe.entities.Mensagem;
+import com.unoeste.chatredesbe.entities.Usuario;
 import com.unoeste.chatredesbe.repositories.DestinatarioMensagemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -49,5 +51,30 @@ public class DestinatarioMensagemService {
         {
             return false;
         }
+    }
+
+    public DestinatarioMensagem getByMensagemAndDestinatario(Mensagem mensagem, Usuario destino)
+    {
+        try
+        {
+            return destinatarioMensagemRepository.findByMensagemAndDestinatario(mensagem, destino);
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
+    }
+
+    public List<DestinatarioMensagem> getByDestinatariosPendentesByUser(Long id, String status)
+    {
+        try
+        {
+            return destinatarioMensagemRepository.findAllByDestinatarioIdAndStatus(id, status);
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
+
     }
 }

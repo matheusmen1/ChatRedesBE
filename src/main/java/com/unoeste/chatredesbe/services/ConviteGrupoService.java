@@ -18,6 +18,11 @@ public class ConviteGrupoService
         return conviteGrupoRepository.findAll();
     }
 
+    public List<ConviteGrupo> getAllConvitesByConvidado(Long idConvidado)
+    {
+        return conviteGrupoRepository.getAllConvitesByConvidado(idConvidado);
+    }
+
     public ConviteGrupo getById(Long id)
     {
         return conviteGrupoRepository.findById(id).orElse(null);
@@ -27,7 +32,6 @@ public class ConviteGrupoService
     {
         return conviteGrupoRepository.findByIdGrupoConvidado(idgrupo, idConvidado);
     }
-
 
     public ConviteGrupo salvar(ConviteGrupo conviteGrupo)
     {

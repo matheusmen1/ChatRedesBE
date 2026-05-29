@@ -19,6 +19,19 @@ public class SolicitacaoMensagemService
         return solicitacaoMensagemRepository.findAll();
     }
 
+    public List<SolicitacaoMensagem> getAllSolicitacoesById(Long idUsuario)
+    {
+        return solicitacaoMensagemRepository.getAllSolicitacoesById(idUsuario);
+    }
+    public List<SolicitacaoMensagem> getAllSolicitacoesByIdPendentes(Long idUsuario, String status)
+    {
+        return solicitacaoMensagemRepository.getAllSolicitacoesByIdPendentes(idUsuario, status);
+    }
+    public List<SolicitacaoMensagem> getConversas(Long idUsuario)
+    {
+        return solicitacaoMensagemRepository.getConversas(idUsuario);
+    }
+
     public SolicitacaoMensagem getById(Long id)
     {
         return solicitacaoMensagemRepository.findById(id).orElse(null);

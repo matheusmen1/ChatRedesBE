@@ -23,6 +23,11 @@ public class MensagemService
         return mensagemRepository.getByRemetenteAll(id_usuario);
     }
 
+    public List<Mensagem> getAllByGrupo(Long idGrupo)
+    {
+        return mensagemRepository.getAllByGrupo(idGrupo);
+    }
+
     public List<Mensagem> getAllConversa(Long idOrigem, Long idDestino)
     {
         return mensagemRepository.getAllConversa(idOrigem, idDestino);
@@ -54,6 +59,5 @@ public class MensagemService
             return false;
         }
     }
-
 
 }

@@ -50,4 +50,13 @@ public class GrupoService {
             return false;
         }
     }
+
+    public List<Grupo> getAllGruposUsuario(Long id)
+    {
+        List<Grupo> grupos = grupoRepository.getAllGruposUsuario(id);
+        if (grupos.size() > 0)
+            return grupos;
+        else
+            return null;
+    }
 }
