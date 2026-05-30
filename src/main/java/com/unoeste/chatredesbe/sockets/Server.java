@@ -31,7 +31,7 @@ public class Server implements CommandLineRunner
     @Override
     public void run(String... args) throws Exception {
         int porta = 5000;
-        InetAddress enderecoRadmin = InetAddress.getByName("25.32.105.72");
+        InetAddress enderecoRadmin = InetAddress.getByName("25.32.77.213");
         try
         {
             ServerSocket serverSocket = new ServerSocket(porta, 50, enderecoRadmin);
@@ -49,7 +49,7 @@ public class Server implements CommandLineRunner
         }
         catch (Exception e)
         {
-            System.out.println("Erro Ao Iniciar o Servidor Soect: "+ e.getMessage());
+            System.out.println("Erro Ao Iniciar o Servidor Socket: "+ e.getMessage());
         }
 
     }

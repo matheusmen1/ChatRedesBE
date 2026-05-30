@@ -23,7 +23,6 @@ public class ClientHandler implements Runnable {
     private static final String WHITE = "\u001B[37m";
     private static final String BOLD = "\u001B[1m";
 
-
     private final MensageiroFacade mensageiroFacade;
     private final UsuarioService usuarioService;
     private final GrupoService grupoService;
@@ -38,7 +37,6 @@ public class ClientHandler implements Runnable {
     private Grupo conversaGrupoAtual = null;
     private List<ConviteGrupo> convitesGruposPendetes = new ArrayList<>();
     public static List<ClientHandler> clientesConectados = new ArrayList<>();
-
 
     public ClientHandler(Socket clienteSocket, UsuarioService usuarioService, GrupoService grupoService, MensageiroFacade mensageiroFacade, UsuarioGrupoService usuarioGrupoService) {
         this.clienteSocket = clienteSocket;
@@ -323,26 +321,32 @@ public class ClientHandler implements Runnable {
                                             printSucesso("Saindo da conversa..");
                                         }
                                         else
-                                        {
-                                            Usuario usuario = usuarioService.getByApelido(partes[0]);
-                                            if(usuario == null)
-                                                printErro("Esse usuario não existe!!");
-                                            else
-                                            {
-                                                // verificar se esse usuário pode conversar com esse usuario
-                                                ResultadoOperacao<List<Mensagem>> retorno = mensageiroFacade.getMensagensConversa(usuarioLogado.getId(), usuario.getId());
-                                                if(retorno.isSucesso())
-                                                {
-                                                    listarMensagensConversaParticular(retorno.getDados(), usuario);
-                                                    printSucesso(retorno.getMensagem());
-                                                }
-                                                else
-                                                    printErro(retorno.getMensagem());
-                                            }
-                                        }
+                                            printAviso("Invalido");
                                     }
                                     else if(conversaGrupoAtual != null) // esta conversando no grupo
                                         printAviso("Voce esta conversando em um grupo, para sair, use: cdg ..");
+                                    else
+                                    {
+                                        Usuario usuario = usuarioService.getByApelido(partes[0]);
+                                        if(usuario == null)
+                                            printErro("Esse usuario não existe!!");
+                                        else
+                                        {
+                                            // verificar se esse usuário pode conversar com esse usuario
+                                            ResultadoOperacao<List<Mensagem>> retorno = mensageiroFacade.getMensagensConversa(usuarioLogado.getId(), usuario.getId());
+                                            if(retorno.isSucesso())
+                                            {
+                                                // aqui pode conversar, setar todas as mensagens dessa conversa como lidas
+
+                                                mensageiroFacade.setarMensagensComoLida(usuarioLogado.getId(), usuario.getId(), retorno.getDados());
+                                                listarMensagensConversaParticular(retorno.getDados(), usuario);
+                                                printSucesso(retorno.getMensagem());
+                                                conversaAtual = usuario;
+                                            }
+                                            else
+                                                printErro(retorno.getMensagem());
+                                        }
+                                    }
                                 }
                                 else
                                     printAviso("Campo(s) Nao Informado");
@@ -452,12 +456,12 @@ public class ClientHandler implements Runnable {
                         // &<nomegrupo>: <mensagem>: Envia uma mensagem para todos os participantes do grupo.
                         if (usuarioLogado != null && usuarioLogado.getStatus().equals("online"))
                         {
-                            printInfo("&<nomegrupo>: <mensagem>");
+                            printInfo("<nomegrupo>: <mensagem>");
                             linha = entrada.readLine();
                             if (linha != null)
                             {
                                 partes = linha.split(":");
-                                if (partes.length == 2 && partes[0].charAt(0) == '&')
+                                if (partes.length == 2)
                                     enviarMensagemGrupo(partes);
                                 else
                                     printAviso("Formato Invalido");
@@ -498,25 +502,27 @@ public class ClientHandler implements Runnable {
                                             printSucesso("Saindo da conversa..");
                                         }
                                         else
-                                        {
-                                            Grupo grupo = grupoService.getByName(partes[0]);
-                                            if(grupo == null)
-                                                printErro("Esse grupo não existe!!");
-                                            else
-                                            {
-                                                // verificar se esse usuário pode ver as mensagens do grupo
-                                                UsuarioGrupo ug = usuarioGrupoService.getByUsuarioGrupo(grupo.getId(), usuarioLogado.getId());
-                                                if(ug == null)
-                                                    printErro("Voce nao pertence a esse grupo!!");
-                                                else {
-                                                    conversaGrupoAtual = grupo;
-                                                    listarMensagensGrupoId(grupo);
-                                                }
-                                            }
-                                        }
+                                            printAviso("Invalido");
                                     }
                                     else if(conversaAtual != null) // esta conversando no particular
                                         printAviso("Voce esta em uma conversa particular, para sair, use: cd ..");
+                                    else
+                                    {
+                                        Grupo grupo = grupoService.getByName(partes[0]);
+                                        if(grupo == null)
+                                            printErro("Esse grupo não existe!!");
+                                        else
+                                        {
+                                            // verificar se esse usuário pode ver as mensagens do grupo
+                                            UsuarioGrupo ug = usuarioGrupoService.getByUsuarioGrupo(grupo.getId(), usuarioLogado.getId());
+                                            if(ug == null)
+                                                printErro("Voce nao pertence a esse grupo!!");
+                                            else {
+                                                listarMensagensGrupoId(grupo);
+                                                conversaGrupoAtual = grupo;
+                                            }
+                                        }
+                                    }
                                 }
                                 else
                                     printAviso("Campo(s) Nao Informado");
@@ -674,8 +680,31 @@ public class ClientHandler implements Runnable {
                         else
                             printAviso("Usuario Nao Logado");
                     }
+
                     default: {
-                        printAviso("Comando Invalido");
+                        if(conversaAtual != null)
+                        {
+                            // está em uma conversa particular, apenas cria uma novo mensagem
+                            ResultadoOperacao<DestinatarioMensagem> retorno = mensageiroFacade.enviarMensagemPessoa(usuarioLogado.getId(), conversaAtual.getId(), linha);
+                            mandarMensagemTempoReal(conversaAtual, linha, retorno.getDados());
+                            if(!retorno.isSucesso())
+                                printAviso(retorno.getMensagem());
+                        }
+                        else if(conversaGrupoAtual != null)
+                        {
+                            // está conversando no grupo, apenas cria uma nova mensagem para todos do grupo
+                            //String mensagem = criaMensagem(partes);
+                            ResultadoOperacao<Mensagem> retorno = mensageiroFacade.enviarMensagemNoGrupo(
+                                    new Mensagem(null, linha, null, null),
+                                    usuarioLogado.getId(),
+                                    conversaGrupoAtual.getId()
+                            );
+                            mandarMensagemTempoRealGrupo(conversaGrupoAtual, linha);
+                            if(!retorno.isSucesso())
+                                printAviso(retorno.getMensagem());
+                        }
+                        else
+                            printAviso("Comando Invalido");
                         break;
                     }
                 }
@@ -720,9 +749,11 @@ public class ClientHandler implements Runnable {
             String nomeGrupo = partes[0];
             String conteudo = partes[1].trim();
 
-            if (usuarioLogado != null) {
+            if (usuarioLogado != null)
+            {
                 Grupo grupo = grupoService.getByName(nomeGrupo);
-                if (grupo != null) {
+                if (grupo != null)
+                {
                     Mensagem mensagem = new Mensagem();
                     mensagem.setConteudo(conteudo);
                     ResultadoOperacao<Mensagem> resultado = mensageiroFacade.enviarMensagemNoGrupo(mensagem, usuarioLogado.getId(), grupo.getId());
@@ -731,14 +762,16 @@ public class ClientHandler implements Runnable {
                         printSucesso(resultado.getMensagem());
                     else
                         printErro(resultado.getMensagem());
-                } else
+                }
+                else
                     printErro("Grupo Nao Encontrado");
-            } else
+            }
+            else
                 printAviso("Usuario Nao Logado");
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             printErro("Erro ao Enviar Mensagem No Grupo");
         }
-
     }
 
     private void enviarMensagemGrupoSeletiva(String nomeGrupo, List<String> apelidoUsuarios, String conteudo) {
@@ -831,7 +864,6 @@ public class ClientHandler implements Runnable {
         }
     }
 
-
     private void listaGrupos() {
         ResultadoOperacao<List<Grupo>> resultado = mensageiroFacade.getAllGrupos();
 
@@ -910,17 +942,20 @@ public class ClientHandler implements Runnable {
     private void listarMensagensGrupoId(Grupo grupo)
     {
         ResultadoOperacao<List<Mensagem>> resultado = mensageiroFacade.getMensagensGrupo(grupo.getId());
-        if (resultado.getDados() != null && !resultado.getDados().isEmpty()) {
+        if (resultado.getDados() != null && !resultado.getDados().isEmpty())
+        {
             DateTimeFormatter formatador = DateTimeFormatter.ofPattern("HH:mm");
             printInfo("Grupo: "+grupo.getNome()+" ===================================");
-            for (int i = 0; i < resultado.getDados().size(); i++) {
+            for (int i = 0; i < resultado.getDados().size(); i++)
+            {
                 Mensagem mensagem = resultado.getDados().get(i);
                 String horarioEnvio = mensagem.getDataHoraEnvio().format(formatador);
                 printInfo("[" + horarioEnvio + "] " + "@" + mensagem.getRemetente().getApelido() + ": " + mensagem.getConteudo());
             }
             printSucesso(resultado.getMensagem());
-        } else
-            printErro(resultado.getMensagem());
+        }
+        else
+            printSucesso(resultado.getMensagem());
     }
 
     private void listarMensagensConversaParticular(List<Mensagem> mensagens, Usuario user)
@@ -1030,7 +1065,84 @@ public class ClientHandler implements Runnable {
         } else {
             printAviso("Referencia de Destinatario Incorreta");
         }
+    }
 
+    private void mandarMensagemTempoReal(Usuario destinatario, String mensagem, DestinatarioMensagem dm)
+    {
+        if (destinatario != null)
+        {
+            // vou enviar a mensagem apenas para o destinatário correto -> EM TEMPO REAL
+
+            // varrer lista de clientesConectados
+            for (int i = 0; i < clientesConectados.size(); i++)
+            {
+                ClientHandler clientHandler = clientesConectados.get(i);
+                if (clientHandler.usuarioLogado != null && clientHandler.usuarioLogado.getId().equals(destinatario.getId()))
+                {
+                    // achei o cliente correto para o envio da mensagem
+
+                    if (clientHandler.usuarioLogado.getStatus().equals("online"))
+                    {
+                        // aparecer a mensagem apenas se ele estiver no mesmo chat junto de mim
+                        if(clientHandler.conversaAtual != null && clientHandler.conversaAtual.getId() == usuarioLogado.getId()) {
+                            DateTimeFormatter formatador = DateTimeFormatter.ofPattern("HH:mm");
+                            String horarioAtual = LocalDateTime.now().format(formatador);
+                            String mensagemNova = "[" + horarioAtual + "]" + " @" + this.usuarioLogado.getApelido() + ":" + mensagem;
+                            clientHandler.printAviso(mensagemNova);
+                            mensageiroFacade.confirmarEntregaMensagem(dm.getMensagem().getId(), clientHandler.usuarioLogado.getId());
+                        }
+                        else
+                        {
+                            // apenas enviar uma notificação -> "Usuário X te mandou mensagem"
+                            clientHandler.printAviso("Usuário @" +usuarioLogado.getApelido()+ " te mandou uma mensagem!");
+                        }
+                    }
+                }
+            }
+            DateTimeFormatter formatador = DateTimeFormatter.ofPattern("HH:mm");
+            String horarioAtual = LocalDateTime.now().format(formatador);
+            String mensagemNova = "[" + horarioAtual + "]" + " @" + this.usuarioLogado.getApelido() + ":" + mensagem;
+            printAviso(mensagemNova);
+        }
+    }
+
+    private void mandarMensagemTempoRealGrupo(Grupo grupo, String mensagem)
+    {
+        if (grupo != null) {
+            // vou enviar a mensagem apenas para o destinatário correto -> EM TEMPO REAL
+
+            // varrer lista de clientesConectados
+            for (int i = 0; i < clientesConectados.size(); i++)
+            {
+                ClientHandler clientHandler = clientesConectados.get(i);
+                if (clientHandler.usuarioLogado != null && isInGrupo(clientHandler.usuarioLogado, grupo))
+                {
+                    // achei o cliente correto para o envio da mensagem
+
+                    if (clientHandler.usuarioLogado.getStatus().equals("online"))
+                    {
+                        // aparecer a mensagem apenas se ele estiver no mesmo chat junto de mim
+                        if(clientHandler.conversaGrupoAtual != null && clientHandler.conversaGrupoAtual.getId() == conversaGrupoAtual.getId()) {
+                            DateTimeFormatter formatador = DateTimeFormatter.ofPattern("HH:mm");
+                            String horarioAtual = LocalDateTime.now().format(formatador);
+                            String mensagemNova = "[" + horarioAtual + "]" + " @" + this.usuarioLogado.getApelido() + ":" + mensagem;
+                            clientHandler.printAviso(mensagemNova);
+                        }
+                        else
+                        {
+                            // apenas enviar uma notificação -> "Tem mensagem nova em &churrasco"
+                            clientHandler.printAviso("Tem mensagem nova em &" +grupo.getNome());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean isInGrupo(Usuario usuario, Grupo grupo)
+    {
+        UsuarioGrupo ug = usuarioGrupoService.getByUsuarioGrupo(grupo.getId(), usuario.getId());
+        return ug != null;
     }
 
     private void criarGrupo(String nomeGrupo) {
@@ -1207,6 +1319,13 @@ public class ClientHandler implements Runnable {
             printSucesso(resultado.getMensagem());
         else
             printErro(resultado.getMensagem());
+    }
+
+    private String criaMensagem(String[] partes)
+    {
+        String mensagem = "";
+        for (String parte : partes) mensagem = mensagem.concat(parte);
+        return mensagem;
     }
 
     //funções auxiliares exibição

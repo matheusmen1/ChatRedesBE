@@ -522,6 +522,30 @@ public class MensageiroFacade
         }
     }
 
+    public void setarMensagensComoLida(Long idOrigem, Long idDestinatario, List<Mensagem> mensagens)
+    {
+        try
+        {
+            // verificando se o usuário origem existe
+            Usuario origem = usuarioService.getById(idOrigem);
+            if(origem == null)
+                return;
+
+            // verificando se o usuário destinatário existe
+            Usuario destinatario = usuarioService.getById(idDestinatario);
+            if(destinatario == null)
+                return;
+
+            // retornar todas as mensagens de uma
+            for(Mensagem m: mensagens)
+                confirmarEntregaMensagem(m.getId(), origem.getId());
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
     // ===================================================================================================================
     // PUT's
     // ===================================================================================================================
@@ -574,7 +598,6 @@ public class MensageiroFacade
     {
         try
         {
-
             Mensagem mensagem = mensagemService.getById(idMensagem);
             Usuario destino = usuarioService.getById(idDestinatario);
 
