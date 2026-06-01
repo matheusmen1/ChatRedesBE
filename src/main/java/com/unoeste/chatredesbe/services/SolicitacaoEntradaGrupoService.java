@@ -22,6 +22,11 @@ public class SolicitacaoEntradaGrupoService {
         return solicitacaoEntradaGrupoRepository.findById(id).orElse(null);
     }
 
+    public SolicitacaoEntradaGrupo getByGrupoSolicitante(Long idGrupo, Long idSolicitante)
+    {
+        return solicitacaoEntradaGrupoRepository.getByGrupoSolicitante(idGrupo, idSolicitante);
+    }
+
     public SolicitacaoEntradaGrupo salvar(SolicitacaoEntradaGrupo solicitacaoEntradaGrupo)
     {
         try {

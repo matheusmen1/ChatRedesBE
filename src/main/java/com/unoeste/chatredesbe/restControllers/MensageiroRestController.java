@@ -252,7 +252,7 @@ public class MensageiroRestController {
     @PutMapping("/votarEntradaGrupo/{idVotante}/{idSolicitacao}/{voto}")
     public ResponseEntity<Object> votarSolicitacaoEntradaGrupo(@PathVariable Long idVotante, @PathVariable Long idSolicitacao, @PathVariable Integer voto)
     {
-        ResultadoOperacao<Object> resultado = mensageiroFacade.votarSolicitacaoEntradaGrupo(idVotante, idSolicitacao, voto);
+        ResultadoOperacao<VotoSolicitacao> resultado = mensageiroFacade.votarSolicitacaoEntradaGrupo(idVotante, idSolicitacao, voto);
 
         if (resultado.isSucesso()) {
             return ResponseEntity.ok(resultado.getDados());

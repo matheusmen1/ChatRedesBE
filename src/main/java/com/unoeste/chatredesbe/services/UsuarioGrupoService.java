@@ -1,6 +1,5 @@
 package com.unoeste.chatredesbe.services;
 
-import com.unoeste.chatredesbe.entities.Usuario;
 import com.unoeste.chatredesbe.entities.UsuarioGrupo;
 import com.unoeste.chatredesbe.repositories.UsuarioGrupoRepository;
 import org.springframework.beans.factory.annotation.Autowired;

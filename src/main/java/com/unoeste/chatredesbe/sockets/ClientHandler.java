@@ -27,6 +27,7 @@ public class ClientHandler implements Runnable {
     private final UsuarioService usuarioService;
     private final GrupoService grupoService;
     private final UsuarioGrupoService usuarioGrupoService;
+    private final SolicitacaoEntradaGrupoService solicitacaoEntradaGrupoService;
 
     private Socket clienteSocket;
     private BufferedReader entrada;
@@ -38,12 +39,13 @@ public class ClientHandler implements Runnable {
     private List<ConviteGrupo> convitesGruposPendetes = new ArrayList<>();
     public static List<ClientHandler> clientesConectados = new ArrayList<>();
 
-    public ClientHandler(Socket clienteSocket, UsuarioService usuarioService, GrupoService grupoService, MensageiroFacade mensageiroFacade, UsuarioGrupoService usuarioGrupoService) {
+    public ClientHandler(Socket clienteSocket, UsuarioService usuarioService, GrupoService grupoService, MensageiroFacade mensageiroFacade, UsuarioGrupoService usuarioGrupoService, SolicitacaoEntradaGrupoService solicitacaoEntradaGrupoService) {
         this.clienteSocket = clienteSocket;
         this.usuarioService = usuarioService;
         this.grupoService = grupoService;
         this.mensageiroFacade = mensageiroFacade;
         this.usuarioGrupoService = usuarioGrupoService;
+        this.solicitacaoEntradaGrupoService = solicitacaoEntradaGrupoService;
     }
 
     @Override
@@ -110,6 +112,7 @@ public class ClientHandler implements Runnable {
                             break;
                         } else
                             printAviso("Usuario Nao Logado");
+                        break;
                     }
                     case "status": {//status <online|offline|ocupado>: Altera o status atual do usuário.
                         if (usuarioLogado != null)
@@ -203,6 +206,13 @@ public class ClientHandler implements Runnable {
                     case "listaconvites": {
                         if (usuarioLogado != null)
                             listConvites();
+                        else
+                            printAviso("Usuario Nao Logado");
+                        break;
+                    }
+                    case "listasolicitacoesgrupos": {
+                        if (usuarioLogado != null)
+                            listaSolicitGrupos();
                         else
                             printAviso("Usuario Nao Logado");
                         break;
@@ -439,6 +449,7 @@ public class ClientHandler implements Runnable {
                         }
                         else
                             printAviso("Usuario Nao Logado");
+                        break;
                     }
                     case "sairgrupo": {
                         // sair &<nomegrupo>: O usuário logado sai do grupo especificado (avisando os demais).
@@ -474,14 +485,50 @@ public class ClientHandler implements Runnable {
                         break;
                     }
                     case "responderprivado": {
-                        // preciso estar em um grupo para conseguir enviar uma mensagem particular para um usuário
+                        // estando um grupo, o usuário tem a opção de enviar a mensagem privativa para um usuário
                         // responderprivado <usuario>
                         if(usuarioLogado!= null)
                         {
-
+                            printInfo("( <usuario> : <mensagem> )");
+                            linha = entrada.readLine();
+                            if (linha != null)
+                            {
+                                partes = linha.split(":");
+                                // será divido em duas partes:
+                                //      0 -> usuário
+                                //      1 -> mensagem
+                                if (partes.length == 2)
+                                {
+                                    if(conversaGrupoAtual != null) // esta conversando no grupo -> pode enviar uma mensagem seletiva
+                                    {
+                                        String mensagem = partes[1].trim();
+                                        Usuario usuario = usuarioService.getByApelido(partes[1].trim());
+                                        if(usuario != null)
+                                        {
+                                            ResultadoOperacao<DestinatarioMensagem> ro = mensageiroFacade.enviarMensagemPessoa(usuarioLogado.getId(), usuario.getId(), mensagem);
+                                            if(ro.isSucesso())
+                                            {
+                                                printSucesso(ro.getMensagem());
+                                                mandarMensagemTempoReal(usuario, mensagem, ro.getDados());
+                                            }
+                                            else
+                                                printErro(ro.getMensagem());
+                                        }
+                                        else
+                                            printErro("Esse usuário não existe!!");
+                                    }
+                                    else if(conversaAtual != null) // esta conversando no particular
+                                        printAviso("Voce esta em uma conversa particular, para sair, use: cd ..");
+                                    else
+                                        printErro("Voce nao esta em um chat de grupo, nao pode realizar a operacao!!");
+                                }
+                                else
+                                    printAviso("Campo(s) Nao Informado");
+                            }
                         }
                         else
                             printAviso("Usuario Nao Logado");
+                        break;
                     }
                     case "cdg":{
                         // CHANGE DIRECTORY DE GRUPOS, PARA IR EM CONVERSAS EM GRUPOS
@@ -532,46 +579,124 @@ public class ClientHandler implements Runnable {
                             printAviso("Usuario Nao Logado");
                         break;
                     }
-
-                    // votar &<nomegrupo> @<usuario_solicitante> <sim|nao>: Resposta dos membros atuais do grupo aprovando ou negando a entrada do solicitante.
-
-                    // &<nomegrupo><@usuario1,@usuario2>: <mensagem>: Envia uma mensagem dentro do grupo apenas para os participantes especificados.
-                    case "mensagemgruposeletiva": {
-                        if (usuarioLogado != null && usuarioLogado.getStatus().equals("online")) {
-                            printInfo("<&nomegrupo><@usuario1,@usuario2> : <mensagem>");
+                    case "votar": {
+                        // votar &<nomegrupo> @<usuario_solicitante> <sim|nao>: Resposta dos membros atuais do grupo aprovando ou negando a entrada do solicitante.
+                        if (usuarioLogado != null)
+                        {
+                            printInfo("( <grupo>  <usuarioSolicitante> < sim | nao >)");
                             linha = entrada.readLine();
-                            if (linha != null) {
-                                partes = linha.split(":");
-                                if (partes.length == 2) {
-                                    String cabecalho = partes[0].trim();
-                                    String conteudo = partes[1].trim();
+                            if (linha != null)
+                            {
+                                partes = linha.split(" ");
+                                if (partes.length == 3)
+                                {
+                                    // Partes:
+                                    //      0 -> grupo
+                                    //      1 -> usuario
+                                    //      2 -> voto
+                                    Grupo grupo = grupoService.getByName(partes[0].trim());
+                                    Usuario usuario = usuarioService.getByApelido(partes[1].trim());
+                                    String voto = partes[2].trim();
+                                    boolean votoValido = true;
+                                    Integer votoFinal = 0;
+                                    if(voto.trim().equalsIgnoreCase("sim"))
+                                        votoFinal = 1;
+                                    else if(voto.trim().equalsIgnoreCase("nao"))
+                                        votoFinal = 0;
+                                    else
+                                        votoValido = false;
+                                    if (votoValido)
+                                    {
+                                        // pegar a solicitação do banco de dados
+                                        SolicitacaoEntradaGrupo seg = solicitacaoEntradaGrupoService.getByGrupoSolicitante(grupo.getId(), usuario.getId());
+                                        if(seg != null)
+                                        {
+                                            ResultadoOperacao<StatusSolicitacaoVotacao> ro =
+                                                    mensageiroFacade.votarSolicitacaoEntradaGrupo(
+                                                            usuarioLogado.getId(),
+                                                            seg.getId(),
+                                                            votoFinal
+                                                    );
 
-                                    if (cabecalho.startsWith("&") && cabecalho.contains("@")) {
-                                        String[] partesCabecalho = cabecalho.split("@");
-                                        //pega o nome do grupo tirando o & da frente
-                                        String nomeGrupo = partesCabecalho[0].substring(1).trim();
+                                            if (ro.isSucesso())
+                                            {
+                                                printSucesso(ro.getMensagem());
 
-                                        List<String> listaUsuarios = new ArrayList<>();
-
-                                        //indice 0 é nome do grupo
-                                        for (int i = 1; i < partesCabecalho.length; i++) {
-                                            String usuario = partesCabecalho[i].trim();
-                                            if (!usuario.isEmpty())
-                                                listaUsuarios.add(usuario);
+                                                if (ro.getDados() == StatusSolicitacaoVotacao.PERMITIDO)
+                                                {
+                                                    // usuário foi admitido
+                                                    avisarUsuarioAdmitido(usuario);
+                                                }
+                                                else if (ro.getDados() == StatusSolicitacaoVotacao.NEGADO)
+                                                {
+                                                    // usuário foi negado
+                                                    avisarUsuarioNegado(usuario);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                printErro(ro.getMensagem());
+                                            }
                                         }
-
-                                        if (nomeGrupo.isEmpty() || listaUsuarios.isEmpty())
-                                            printAviso("Campo(s) Nao Informado(s)");
                                         else
-                                            enviarMensagemGrupoSeletiva(nomeGrupo, listaUsuarios, conteudo);
-                                    } else
-                                        printAviso("Formato do Cabecalho Invalido");
-                                } else
-                                    printAviso("Formato Invalido");
-                            } else
-                                printAviso("Formato Invalido");
-                        } else
-                            printAviso("Usuario Nao esta Online");
+                                            printErro("Nao existe essa solicitacao!!");
+                                    }
+                                    else
+                                        printErro("Voto invalido!!");
+                                }
+                                else
+                                    printAviso("Campo(s) Nao Informado");
+                            }
+                        }
+                        else
+                            printAviso("Usuario Nao Logado");
+                        break;
+                    }
+                    case "mensagemgruposeletiva": {
+                        // estando na conversa de um grupo, pode ser possível enviar mensagens individuais para membros desse grupo
+                        if(usuarioLogado!= null)
+                        {
+                            printInfo("( <usuario> (,<outroUsuario>) : <mensagem> )");
+                            linha = entrada.readLine();
+                            if (linha != null)
+                            {
+                                partes = linha.split(":");
+                                // será divido em duas partes:
+                                //      0 -> usuários
+                                //      1 -> mensagem
+                                if (partes.length == 2)
+                                {
+                                    if(conversaGrupoAtual != null) // esta conversando no grupo -> pode enviar uma mensagem seletiva
+                                    {
+                                        EnviarMensagemSeletivaGrupoDTO emsg = new EnviarMensagemSeletivaGrupoDTO();
+                                        List<Long> usersId = new ArrayList<>();
+                                        String[] possiveisUsers = partes[0].split(",");
+                                        // povoar a lista de ID -> dos usuários para o envio da mensagem
+                                        for(String pu : possiveisUsers)
+                                        {
+                                            Usuario user = usuarioService.getByApelido(pu.trim());
+                                            usersId.add(user.getId());
+                                        }
+                                        emsg.setRemetenteId(usuarioLogado.getId());
+                                        emsg.setConteudo(partes[1].trim());
+                                        ResultadoOperacao<String> ro = mensageiroFacade.enviarMensagemSeletivaGrupo(conversaGrupoAtual.getId(), emsg);
+                                        if(ro.isSucesso())
+                                        {
+                                            printSucesso(ro.getMensagem());
+                                            mandarMensagemTempoRealGrupoSeletivo(conversaGrupoAtual, partes[1].trim(), usersId);
+                                        }
+                                        else
+                                            printErro(ro.getMensagem());
+                                    }
+                                    else if(conversaAtual != null) // esta conversando no particular
+                                        printAviso("Voce esta em uma conversa particular, para sair, use: cd ..");
+                                }
+                                else
+                                    printAviso("Campo(s) Nao Informado");
+                            }
+                        }
+                        else
+                            printAviso("Usuario Nao Logado");
                         break;
                     }
 
@@ -652,6 +777,7 @@ public class ClientHandler implements Runnable {
                         }
                         else
                             printAviso("Usuario Nao Logado");
+                        break;
                     }
                     case "naogrupo": {
                         if(usuarioLogado != null) {
@@ -679,6 +805,7 @@ public class ClientHandler implements Runnable {
                         }
                         else
                             printAviso("Usuario Nao Logado");
+                        break;
                     }
 
                     default: {
@@ -1132,6 +1259,37 @@ public class ClientHandler implements Runnable {
                         {
                             // apenas enviar uma notificação -> "Tem mensagem nova em &churrasco"
                             clientHandler.printAviso("Tem mensagem nova em &" +grupo.getNome());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void mandarMensagemTempoRealGrupoSeletivo(Grupo grupo, String mensagem, List<Long> usersId) {
+        if (grupo != null && usersId != null && !usersId.isEmpty())
+        {
+            DateTimeFormatter formatador = DateTimeFormatter.ofPattern("HH:mm");
+            String horarioAtual = LocalDateTime.now().format(formatador);
+            String mensagemNova = "[" + horarioAtual + "] @" + this.usuarioLogado.getApelido() + ": " + mensagem;
+
+            for (int i = 0; i < clientesConectados.size(); i++)
+            {
+                ClientHandler clientHandler = clientesConectados.get(i);
+
+                if (clientHandler != null && clientHandler.usuarioLogado != null)
+                {
+                    Long idUsuarioLogado = clientHandler.usuarioLogado.getId();
+
+                    // só envia para quem foi selecionado e está dentro do grupo
+                    if (usersId.contains(idUsuarioLogado) && isInGrupo(clientHandler.usuarioLogado, grupo))
+                    {
+                        if (clientHandler.usuarioLogado.getStatus().equalsIgnoreCase("online"))
+                        {
+                            if (clientHandler.conversaGrupoAtual != null && clientHandler.conversaGrupoAtual.getId() == conversaGrupoAtual.getId())
+                                clientHandler.printInfo(mensagemNova);
+                            else
+                                clientHandler.printAviso("Tem mensagem nova em &" + grupo.getNome());
                         }
                     }
                 }

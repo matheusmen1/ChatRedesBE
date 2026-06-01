@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.xml.transform.Result;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -673,70 +674,86 @@ public class MensageiroFacade
     /**
      * Método para votar na entrada de um usuário no Grupo
      * */
-    public ResultadoOperacao<Object> votarSolicitacaoEntradaGrupo(Long idVotante, Long idSolicitacao, Integer voto)
+    public ResultadoOperacao<StatusSolicitacaoVotacao> votarSolicitacaoEntradaGrupo(Long idVotante, Long idSolicitacao, Integer voto)
     {
         try
         {
-            // verificar se a solicitação existe
             SolicitacaoEntradaGrupo solicitacaoEntradaGrupo = solicitacaoEntradaGrupoService.getById(idSolicitacao);
-            if(solicitacaoEntradaGrupo == null)
+            if (solicitacaoEntradaGrupo == null)
                 return ResultadoOperacao.erro("Essa solicitação não existe!!");
 
-            // verificar se o existe o voto
             VotoSolicitacao votoSolicitacao = votoSolicitacaoService.getByIdVotanteSolicitacao(idVotante, idSolicitacao);
-            if(votoSolicitacao == null)
+            if (votoSolicitacao == null)
                 return ResultadoOperacao.erro("Esse voto não existe!!");
 
-            if(solicitacaoEntradaGrupo.getStatus().equals("Pendente"))
+            if (solicitacaoEntradaGrupo.getStatus().equals("Pendente"))
             {
-                // alterar o voto
-                if(voto == 1) // -> Aceitar
+                if (voto == 1)
                 {
                     votoSolicitacao.setStatus("Permitido");
                     votoSolicitacao = votoSolicitacaoService.salvar(votoSolicitacao);
 
-                    // verificar se todos os votos foram "Permitido" da solicitação
                     List<VotoSolicitacao> votos = votoSolicitacaoService.getAllSolicitacao(solicitacaoEntradaGrupo.getId());
                     boolean permitido = true;
-                    for(int i=0; i<votos.size() && permitido; i++)
+
+                    for (int i = 0; i < votos.size() && permitido; i++)
                     {
-                        if(!votos.get(i).getStatus().equals("Permitido"))
+                        if (!votos.get(i).getStatus().equals("Permitido"))
                             permitido = false;
                     }
-                    if(permitido) // deixar a solicitação como "Permitido"
+
+                    if (permitido)
                     {
                         solicitacaoEntradaGrupo.setStatus("Permitido");
                         solicitacaoEntradaGrupo = solicitacaoEntradaGrupoService.salvar(solicitacaoEntradaGrupo);
 
-                        // criar um UsuarioGrupo
                         UsuarioGrupo usuarioGrupo = new UsuarioGrupo(
                                 solicitacaoEntradaGrupo.getSolicitante(),
                                 solicitacaoEntradaGrupo.getGrupo(),
                                 LocalDateTime.now()
                         );
+
+                        // se existir service, salve aqui:
+                        // usuarioGrupoService.salvar(usuarioGrupo);
+
+                        return ResultadoOperacao.sucesso(
+                                "Voto realizado com sucesso! Usuário " + usuarioGrupo.getUsuario().getNome()
+                                        + " admitido no grupo " + usuarioGrupo.getGrupo().getNome(),
+                                StatusSolicitacaoVotacao.PERMITIDO
+                        );
                     }
 
-                    return ResultadoOperacao.sucesso("Voto realizado com sucesso!!", votoSolicitacao);
+                    return ResultadoOperacao.sucesso(
+                            "Voto realizado com sucesso!!",
+                            StatusSolicitacaoVotacao.PENDENTE
+                    );
                 }
                 else
                 {
                     votoSolicitacao.setStatus("Negado");
                     votoSolicitacaoService.salvar(votoSolicitacao);
+
                     solicitacaoEntradaGrupo.setStatus("Negada");
                     solicitacaoEntradaGrupo = solicitacaoEntradaGrupoService.salvar(solicitacaoEntradaGrupo);
-                    return ResultadoOperacao.sucesso("Solicitação negada com sucesso!!", solicitacaoEntradaGrupo);
+
+                    return ResultadoOperacao.sucesso(
+                            "Solicitação negada!! Usuário " + solicitacaoEntradaGrupo.getSolicitante().getNome()
+                                    + " não foi admitido no grupo " + solicitacaoEntradaGrupo.getGrupo().getNome(),
+                            StatusSolicitacaoVotacao.NEGADO
+                    );
                 }
             }
-            else if(solicitacaoEntradaGrupo.getStatus().equals("Confirmado"))
+            else if (solicitacaoEntradaGrupo.getStatus().equals("Permitido"))
             {
-                return ResultadoOperacao.erro("Votação já concluída, Usuário foi PERMITIDO!");
+                return ResultadoOperacao.erro("Votação já concluída, usuário foi PERMITIDO!");
             }
-            else // aqui a solicitação foi negada
+            else
             {
-                return ResultadoOperacao.erro("Votação já concluída, Usuário foi NÃO FOI PERMITIDO!");
+                return ResultadoOperacao.erro("Votação já concluída, usuário NÃO foi PERMITIDO!");
             }
         }
-        catch (Exception e) {
+        catch (Exception e)
+        {
             e.printStackTrace();
             return ResultadoOperacao.erro("Erro!! " + e.getMessage());
         }
