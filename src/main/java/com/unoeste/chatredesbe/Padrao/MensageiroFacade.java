@@ -706,7 +706,7 @@ public class MensageiroFacade
             if (votoSolicitacao == null)
                 return ResultadoOperacao.erro("Esse voto não existe!!");
 
-            if (solicitacaoEntradaGrupo.getStatus().equals("Pendente"))
+            if (solicitacaoEntradaGrupo.getStatus().equalsIgnoreCase("Pendente"))
             {
                 if (voto == 1)
                 {

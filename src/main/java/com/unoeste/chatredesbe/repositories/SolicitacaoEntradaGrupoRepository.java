@@ -12,8 +12,8 @@ public interface SolicitacaoEntradaGrupoRepository extends JpaRepository<Solicit
     public SolicitacaoEntradaGrupo getByGrupoSolicitante(Long idGrupo, Long idSolicitante);
 
     @Query(value = """
-        SELECT * FROM solicitacao_entrada_grupo AS seg INNER JOIN usuario_grupo AS ug 
-        ON ug.grupo_id = seg.grupo_id AND ug.usuario_id = :idUsuario
+        SELECT DISTINCT seg.* FROM solicitacao_entrada_grupo AS seg INNER JOIN usuario_grupo AS ug 
+        ON ug.grupo_id = seg.grupo_id AND ug.usuario_id = :idUsuario AND seg.status = 'Pendente'
         """, nativeQuery = true)
     public List<SolicitacaoEntradaGrupo> getAllEntradaGrupoUserIn(Long idUsuario);
 }

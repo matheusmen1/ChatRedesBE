@@ -8,7 +8,6 @@ import com.unoeste.chatredesbe.services.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -55,7 +54,5 @@ public class Server implements CommandLineRunner
         {
             System.out.println("Erro Ao Iniciar o Servidor Socket: "+ e.getMessage());
         }
-
     }
 }
-
