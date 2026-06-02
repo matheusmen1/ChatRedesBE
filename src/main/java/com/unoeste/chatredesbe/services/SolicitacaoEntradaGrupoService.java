@@ -27,6 +27,11 @@ public class SolicitacaoEntradaGrupoService {
         return solicitacaoEntradaGrupoRepository.getByGrupoSolicitante(idGrupo, idSolicitante);
     }
 
+    public List<SolicitacaoEntradaGrupo> getAllEntradaGrupoUserIn(Long idUsuario)
+    {
+        return solicitacaoEntradaGrupoRepository.getAllEntradaGrupoUserIn(idUsuario);
+    }
+
     public SolicitacaoEntradaGrupo salvar(SolicitacaoEntradaGrupo solicitacaoEntradaGrupo)
     {
         try {

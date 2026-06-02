@@ -13,17 +13,17 @@ public interface MensagemRepository extends JpaRepository<Mensagem, Long>
     public List<Mensagem> getByRemetenteAll(@Param("remetente_id") Long remetente_id);
 
     @Query(value = """
-            SELECT m.id, m.remetente_id, m.conteudo, m.grupo_id, m.data_hora_envio
+            SELECT m.*
             FROM mensagem AS m
             INNER JOIN destinatario_mensagem AS dm
-            ON dm.destinatario_id = :idDestino AND m.remetente_id = :idOrigem
+            ON dm.destinatario_id = :idDestino AND m.remetente_id = :idOrigem AND m.id = dm.mensagem_id
             
             UNION
             
-            SELECT m.id, m.remetente_id, m.conteudo, m.grupo_id, m.data_hora_envio
+            SELECT m.*
             FROM mensagem AS m
             INNER JOIN destinatario_mensagem AS dm
-            ON dm.destinatario_id = :idOrigem AND m.remetente_id = :idDestino
+            ON dm.destinatario_id = :idOrigem AND m.remetente_id = :idDestino AND m.id = dm.mensagem_id
             ORDER BY data_hora_envio ASC""", nativeQuery = true)
     public List<Mensagem> getAllConversa(@Param("idOrigem") Long idOrigem, @Param("idDestino") Long idDestino);
 

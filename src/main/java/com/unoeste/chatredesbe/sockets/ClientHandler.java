@@ -136,6 +136,7 @@ public class ClientHandler implements Runnable {
                     // VISUALIZAÇÃO E LISTAGENS ========================================================================
                     case "ajuda": {
                         printInfo("======== COMANDOS ======== ");
+                        // PERFIL
                         printInfo("cadastrar");
                         printInfo("login");
                         printInfo("logout");
@@ -143,32 +144,38 @@ public class ClientHandler implements Runnable {
                         printInfo("status");
                         printInfo("definirStatus");
 
+                        // LISTAGENS
                         printInfo("listaUsuarios");
                         printInfo("listaGrupos");
                         printInfo("listaSolicitacoes");
                         printInfo("listaConversas");
                         printInfo("listaConvites");
+                        printInfo("listaSolicitacoesGrupos");
+
+                        // SOLICITAÇÕES E MENSAGENS PARTICULARES
+                        printInfo("aceitarSolicitacao");
+                        printInfo("recusarSolicitacao");
                         printInfo("enviarMensagem");
-                        printInfo("responderprivado");
-
-                        printInfo("aceitarsolicitacao");
-                        printInfo("responderconvite");
-                        printInfo("recusarsolicitacao");
-                        printInfo("novogrupo");
-                        printInfo("inserir");
-
-                        printInfo("entrargrupo");
                         printInfo("cd");
-                        printInfo("cdg");
 
-                        // votar &<nomegrupo> @<usuario_solicitante> <sim|nao>: Resposta dos membros atuais do grupo aprovando ou negando a entrada do solicitante.
+                        // CONVITES E GRUPOS
+                        printInfo("responderConvite");
+                        printInfo("novoGrupo");
+                        printInfo("inserir");
+                        printInfo("entrarGrupo");
+                        printInfo("sairGrupo");
+                        printInfo("mensagemGrupo");
+                        printInfo("responderPrivado");
+                        printInfo("cdg");
+                        printInfo("votar");
+                        printInfo("mensagemGrupoSeletiva");
+
+                        // RESPOSTAS EM TEMPO REAL
                         printInfo("sim");
                         printInfo("nao");
                         printInfo("simgrupo");
                         printInfo("naogrupo");
-                        printInfo("sairgrupo");
-                        printInfo("mensagemgrupo");
-                        printInfo("mensagemgruposeletiva");
+
                         printInfo("=========================== ");
                         break;
                     }
@@ -625,12 +632,12 @@ public class ClientHandler implements Runnable {
                                                 if (ro.getDados() == StatusSolicitacaoVotacao.PERMITIDO)
                                                 {
                                                     // usuário foi admitido
-                                                    avisarUsuarioAdmitido(usuario);
+                                                    avisarUsuarioAdmitidoTempoReal(usuario, grupo);
                                                 }
                                                 else if (ro.getDados() == StatusSolicitacaoVotacao.NEGADO)
                                                 {
                                                     // usuário foi negado
-                                                    avisarUsuarioNegado(usuario);
+                                                    avisarUsuarioNegadoTempoRal(usuario, grupo);
                                                 }
                                             }
                                             else
@@ -901,43 +908,6 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void enviarMensagemGrupoSeletiva(String nomeGrupo, List<String> apelidoUsuarios, String conteudo) {
-        try {
-            Grupo grupo = grupoService.getByName(nomeGrupo);
-            if (grupo != null) {
-                //pegar ids usuarios
-                List<Long> usuariosIds = new ArrayList<>();
-                boolean EncontrouUsuario = true;
-                for (int i = 0; i < apelidoUsuarios.size() && EncontrouUsuario; i++) {
-                    Usuario usuario = usuarioService.getByApelido(apelidoUsuarios.get(i));
-                    if (usuario != null)
-                        usuariosIds.add(usuario.getId());
-                    else {
-                        printErro("Usuario " + apelidoUsuarios.get(i) + "Nao Encontrado");
-                        EncontrouUsuario = false;
-                    }
-                }
-                if (EncontrouUsuario) {
-                    EnviarMensagemSeletivaGrupoDTO dto = new EnviarMensagemSeletivaGrupoDTO();
-                    dto.setConteudo(conteudo);
-                    dto.setRemetenteId(usuarioLogado.getId());
-                    dto.setUsuariosIds(usuariosIds);
-
-                    ResultadoOperacao<String> resultado = mensageiroFacade.enviarMensagemSeletivaGrupo(grupo.getId(), dto);
-
-                    if (resultado.isSucesso())
-                        printSucesso(resultado.getMensagem());
-                    else
-                        printErro(resultado.getMensagem());
-                }
-            } else
-                printErro("Grupo Nao Encontrado");
-        } catch (Exception e) {
-            printErro("Erro ao Enviar Mensagem Seletiva No Grupo");
-        }
-
-    }
-
     private void sairGrupo(String nomeGrupo) {
         try {
 
@@ -970,7 +940,7 @@ public class ClientHandler implements Runnable {
                     nomeGrupo = nomeGrupo.substring(1).trim();
                     if(!nomeGrupo.isBlank())
                     {
-                        ResultadoOperacao<List<VotoSolicitacao>> resultado = mensageiroFacade.solicitarEntradaGrupo(nomeGrupo,usuarioLogado.getId());
+                        ResultadoOperacao<List<VotoSolicitacao>> resultado = mensageiroFacade.solicitarEntradaGrupo(nomeGrupo, usuarioLogado.getId());
                         if(resultado.isSucesso())
                             printSucesso(resultado.getMensagem());
                         else
@@ -1098,6 +1068,22 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    private void listaSolicitGrupos(){
+        ResultadoOperacao<List<SolicitacaoEntradaGrupo>> resultado = mensageiroFacade.getAllEntradaGrupoUserIn(usuarioLogado.getId());
+        if (resultado.getDados() != null && !resultado.getDados().isEmpty())
+        {
+            for (int i = 0; i < resultado.getDados().size(); i++)
+            {
+                Grupo g = resultado.getDados().get(i).getGrupo();
+                Usuario u = resultado.getDados().get(i).getSolicitante();
+                printInfo("Solicitacao: "+u.getApelido()+" entrar no grupo "+g.getNome()+" ["+resultado.getDados().get(i).getStatus()+"]");
+            }
+            printSucesso(resultado.getMensagem());
+        }
+        else
+            printErro(resultado.getMensagem());
+    }
+
     private void recuperarMensagensPendentes() {
         List<DestinatarioMensagem> pendentes = mensageiroFacade.getMensagensDestinariosPendenteAndConfirmadasByUser(usuarioLogado.getId(), "Pendente");
         if (pendentes != null && pendentes.size() > 0) {
@@ -1146,15 +1132,7 @@ public class ClientHandler implements Runnable {
         }
 
     }
-    private void recuperarVotosSolicitacoesPendentes()
-    {
 
-    }
-
-    private void recuperarSolicitacaoEntradaGrupo()
-    {
-
-    }
     private void enviarMensagem(String[] partes) {
         String destinatario = partes[0].trim();
         String mensagem = partes[1];
@@ -1291,6 +1269,60 @@ public class ClientHandler implements Runnable {
                             else
                                 clientHandler.printAviso("Tem mensagem nova em &" + grupo.getNome());
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    private void avisarUsuarioAdmitidoTempoReal(Usuario usuario, Grupo grupo)
+    {
+        if (usuario != null && usuario.getId() > 0)
+        {
+            String mensagemNova = "Voce foi ADMITIDO ao grupo: "+grupo.getNome();
+
+            for (int i = 0; i < clientesConectados.size(); i++)
+            {
+                ClientHandler clientHandler = clientesConectados.get(i);
+
+                if (clientHandler != null && clientHandler.usuarioLogado != null)
+                {
+                    Long idUsuarioLogado = clientHandler.usuarioLogado.getId();
+
+                    if (
+                            idUsuarioLogado != null &&
+                            usuario.getId() == idUsuarioLogado &&
+                            clientHandler.usuarioLogado.getStatus().equalsIgnoreCase("online")
+                    )
+                    {
+                        clientHandler.printInfo(mensagemNova);
+                    }
+                }
+            }
+        }
+    }
+
+    private void avisarUsuarioNegadoTempoRal(Usuario usuario, Grupo grupo)
+    {
+        if (usuario != null && usuario.getId() > 0)
+        {
+            String mensagemNova = "Voce foi NEGADO de entrar no grupo: "+grupo.getNome();
+
+            for (int i = 0; i < clientesConectados.size(); i++)
+            {
+                ClientHandler clientHandler = clientesConectados.get(i);
+
+                if (clientHandler != null && clientHandler.usuarioLogado != null)
+                {
+                    Long idUsuarioLogado = clientHandler.usuarioLogado.getId();
+
+                    if (
+                            idUsuarioLogado != null &&
+                                    usuario.getId() == idUsuarioLogado &&
+                                    clientHandler.usuarioLogado.getStatus().equalsIgnoreCase("online")
+                    )
+                    {
+                        clientHandler.printInfo(mensagemNova);
                     }
                 }
             }
@@ -1477,13 +1509,6 @@ public class ClientHandler implements Runnable {
             printSucesso(resultado.getMensagem());
         else
             printErro(resultado.getMensagem());
-    }
-
-    private String criaMensagem(String[] partes)
-    {
-        String mensagem = "";
-        for (String parte : partes) mensagem = mensagem.concat(parte);
-        return mensagem;
     }
 
     //funções auxiliares exibição

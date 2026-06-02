@@ -246,21 +246,6 @@ public class MensageiroRestController {
         return ResponseEntity.badRequest().body(new Erro(resultado.getMensagem()));
     }
 
-    /**
-     * Método para votar na entrada de um usuário no Grupo
-     * */
-    @PutMapping("/votarEntradaGrupo/{idVotante}/{idSolicitacao}/{voto}")
-    public ResponseEntity<Object> votarSolicitacaoEntradaGrupo(@PathVariable Long idVotante, @PathVariable Long idSolicitacao, @PathVariable Integer voto)
-    {
-        ResultadoOperacao<VotoSolicitacao> resultado = mensageiroFacade.votarSolicitacaoEntradaGrupo(idVotante, idSolicitacao, voto);
-
-        if (resultado.isSucesso()) {
-            return ResponseEntity.ok(resultado.getDados());
-        }
-
-        return ResponseEntity.badRequest().body(new Erro(resultado.getMensagem()));
-    }
-
     // ===================================================================================================================
     // DELETE's
     // ===================================================================================================================

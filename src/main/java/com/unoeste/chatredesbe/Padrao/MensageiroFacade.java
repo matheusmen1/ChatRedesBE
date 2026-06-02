@@ -223,6 +223,25 @@ public class MensageiroFacade
             return ResultadoOperacao.erro("Erro!! " + e.getMessage());
         }
     }
+
+    /**
+     * Método para retornar todas as solicitações de entrada de grupo que o usuário está
+     */
+    public ResultadoOperacao<List<SolicitacaoEntradaGrupo>> getAllEntradaGrupoUserIn(Long idUsuario)
+    {
+        try
+        {
+            List<SolicitacaoEntradaGrupo> solicitacoes = solicitacaoEntradaGrupoService.getAllEntradaGrupoUserIn(idUsuario);
+            if(solicitacoes != null && !solicitacoes.isEmpty())
+                return ResultadoOperacao.sucesso("Solicitacoes encontradas com sucesso!", solicitacoes);
+            else
+                return ResultadoOperacao.erro("Nenhum Convite de Grupo Encontrado!!");
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return ResultadoOperacao.erro("Erro!! " + e.getMessage());
+        }
+    }
     
     /**
      * Método para retornar todas as Mensagens de um Grupo
@@ -506,8 +525,9 @@ public class MensageiroFacade
             solicitacaoEntradaGrupo = solicitacaoEntradaGrupoService.salvar(solicitacaoEntradaGrupo);
 
             // criar os votos solicitação
+            List<UsuarioGrupo> usuariosGrupo = usuarioGrupoService.getAllUserByGrupo(grupo.getId());
             List<VotoSolicitacao> votos = new ArrayList<>();
-            for(UsuarioGrupo ug : grupo.getUsuariosGrupo())
+            for(UsuarioGrupo ug : usuariosGrupo)
             {
                 VotoSolicitacao votoSolicitacao = new VotoSolicitacao(ug.getUsuario(), solicitacaoEntradaGrupo, "Pendente");
                 votoSolicitacaoService.salvar(votoSolicitacao);
