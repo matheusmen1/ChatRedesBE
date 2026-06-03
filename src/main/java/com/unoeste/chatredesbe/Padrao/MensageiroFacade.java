@@ -734,7 +734,7 @@ public class MensageiroFacade
                         );
 
                         // se existir service, salve aqui:
-                        // usuarioGrupoService.salvar(usuarioGrupo);
+                        usuarioGrupoService.salvar(usuarioGrupo);
 
                         return ResultadoOperacao.sucesso(
                                 "Voto realizado com sucesso! Usuário " + usuarioGrupo.getUsuario().getNome()

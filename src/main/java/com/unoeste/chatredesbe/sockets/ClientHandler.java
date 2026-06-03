@@ -684,6 +684,7 @@ public class ClientHandler implements Runnable {
                                             Usuario user = usuarioService.getByApelido(pu.trim());
                                             usersId.add(user.getId());
                                         }
+                                        emsg.setUsuariosIds(usersId);
                                         emsg.setRemetenteId(usuarioLogado.getId());
                                         emsg.setConteudo(partes[1].trim());
                                         ResultadoOperacao<String> ro = mensageiroFacade.enviarMensagemSeletivaGrupo(conversaGrupoAtual.getId(), emsg);
